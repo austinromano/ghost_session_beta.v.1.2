@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ghost-bg text-ghost-text-primary font-sans;
+    overflow: hidden;
+  }
+
+  /* Dark scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ghost-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ghost-text-muted;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-ghost-green/20 text-ghost-green;
+  }
+}
+
+@layer components {
+  .ghost-card {
+    @apply bg-ghost-surface border border-ghost-border rounded-lg;
+  }
+  .ghost-input {
+    @apply bg-ghost-surface-light border border-ghost-border rounded-md px-3 py-2
+           text-ghost-text-primary placeholder:text-ghost-text-muted
+           focus:outline-none focus:border-ghost-green/50 focus:ring-1 focus:ring-ghost-green/20
+           transition-colors;
+  }
+}

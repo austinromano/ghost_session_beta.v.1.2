@@ -1,0 +1,19 @@
+{
+  "name": "@ghost/tokens",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./tokens.json": "./tokens.json",
+    "./tailwind-preset": "./dist/tailwind-preset.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

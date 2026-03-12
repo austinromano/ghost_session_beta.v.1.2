@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.turbo/
+.env
+.env.local
+
+# Plugin build
+apps/plugin/build/
+
+# Tauri
+apps/desktop/src-tauri/target/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# JUCE builds
+JUCE/
+GhostSession/build/

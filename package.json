@@ -1,0 +1,27 @@
+{
+  "name": "ghost-session",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Ghost Session — collaborative music production platform",
+  "scripts": {
+    "dev:server": "pnpm --filter @ghost/server dev",
+    "dev:desktop": "pnpm --filter @ghost/desktop dev",
+    "build:server": "pnpm --filter @ghost/server build",
+    "build:desktop": "pnpm --filter @ghost/desktop build",
+    "build:plugin": "cd apps/plugin && cmake --build build --config Release",
+    "build:packages": "pnpm --filter './packages/*' build",
+    "db:generate": "pnpm --filter @ghost/server db:generate",
+    "db:migrate": "pnpm --filter @ghost/server db:migrate",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}

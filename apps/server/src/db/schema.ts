@@ -1,0 +1,92 @@
+import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+
+const uuid = () => text('id').$defaultFn(() => crypto.randomUUID());
+const timestamp = (name: string) => text(name).$defaultFn(() => new Date().toISOString());
+
+export const users = sqliteTable('users', {
+  id: uuid().primaryKey(),
+  email: text('email').notNull().unique(),
+  displayName: text('display_name').notNull(),
+  avatarUrl: text('avatar_url'),
+  hashedPassword: text('hashed_password').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+});
+
+export const authSessions = sqliteTable('auth_sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: text('expires_at').notNull(),
+});
+
+export const projects = sqliteTable('projects', {
+  id: uuid().primaryKey(),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  ownerId: text('owner_id').notNull().references(() => users.id),
+  tempo: real('tempo').default(140),
+  key: text('key').default('C'),
+  timeSignature: text('time_signature').default('4/4'),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
+});
+
+export const projectMembers = sqliteTable('project_members', {
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role', { enum: ['owner', 'editor', 'viewer'] }).notNull().default('editor'),
+  joinedAt: timestamp('joined_at').notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.projectId, t.userId] }),
+}));
+
+export const tracks = sqliteTable('tracks', {
+  id: uuid().primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type', { enum: ['audio', 'midi', 'drum', 'loop'] }).notNull().default('audio'),
+  ownerId: text('owner_id').notNull().references(() => users.id),
+  fileId: text('file_id'),
+  fileName: text('file_name'),
+  volume: real('volume').default(0.8),
+  pan: real('pan').default(0),
+  muted: integer('muted', { mode: 'boolean' }).default(false),
+  soloed: integer('soloed', { mode: 'boolean' }).default(false),
+  bpm: real('bpm'),
+  key: text('key'),
+  position: integer('position').default(0),
+  createdAt: timestamp('created_at').notNull(),
+});
+
+export const versions = sqliteTable('versions', {
+  id: uuid().primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  versionNumber: integer('version_number').notNull(),
+  name: text('name').notNull(),
+  description: text('description').default(''),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  fileManifestJson: text('file_manifest_json', { mode: 'json' }).default([]),
+  createdAt: timestamp('created_at').notNull(),
+});
+
+export const comments = sqliteTable('comments', {
+  id: uuid().primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  authorId: text('author_id').notNull().references(() => users.id),
+  text: text('text').notNull(),
+  positionBeats: real('position_beats'),
+  parentId: text('parent_id'),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
+});
+
+export const files = sqliteTable('files', {
+  id: uuid().primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  uploadedBy: text('uploaded_by').notNull().references(() => users.id),
+  fileName: text('file_name').notNull(),
+  fileSize: integer('file_size').notNull(),
+  mimeType: text('mime_type').notNull(),
+  s3Key: text('s3_key').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+});
