@@ -5,6 +5,7 @@ import { validateSession } from '../services/auth.js';
 import { registerSessionHandlers } from './session.js';
 import { registerPresenceHandlers } from './presence.js';
 import { registerChatHandlers } from './chat.js';
+import { registerWebRTCHandlers } from './webrtc.js';
 
 // Collaborator colour palette
 const COLLAB_COLOURS = [
@@ -48,6 +49,7 @@ export function setupWebSocket(httpServer: HTTPServer) {
     registerSessionHandlers(io, socket);
     registerPresenceHandlers(io, socket);
     registerChatHandlers(io, socket);
+    registerWebRTCHandlers(io, socket);
 
     socket.on('disconnect', () => {
       console.log(`[WS] ${socket.data.displayName} disconnected`);

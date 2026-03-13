@@ -11,7 +11,7 @@ trackRoutes.use('*', authMiddleware);
 
 const addTrackSchema = z.object({
   name: z.string().min(1).max(100),
-  type: z.enum(['audio', 'midi', 'drum', 'loop']).default('audio'),
+  type: z.enum(['audio', 'midi', 'drum', 'loop', 'fullmix']).default('audio'),
   fileId: z.string().optional(),
   fileName: z.string().optional(),
   bpm: z.number().optional(),
@@ -24,6 +24,8 @@ const updateTrackSchema = z.object({
   pan: z.number().min(-1).max(1).optional(),
   muted: z.boolean().optional(),
   soloed: z.boolean().optional(),
+  fileId: z.string().optional(),
+  fileName: z.string().optional(),
 });
 
 trackRoutes.get('/', async (c) => {

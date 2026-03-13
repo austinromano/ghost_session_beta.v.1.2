@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { ClientToServerEvents, ServerToClientEvents } from '@ghost/protocol';
+import type { ClientToServerEvents, ServerToClientEvents, StreamType } from '@ghost/protocol';
 import type { PresenceInfo } from '@ghost/types';
 
 type GhostSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -45,4 +45,21 @@ export function sendSessionAction(projectId: string, action: any) {
 
 export function sendChat(projectId: string, text: string) {
   socket?.emit('chat-message', { projectId, text });
+}
+
+// WebRTC signaling
+export function sendWebRTCOffer(projectId: string, targetUserId: string, offer: RTCSessionDescriptionInit, streamType?: StreamType) {
+  socket?.emit('webrtc-offer', { projectId, targetUserId, offer, streamType });
+}
+
+export function sendWebRTCAnswer(projectId: string, targetUserId: string, answer: RTCSessionDescriptionInit, streamType?: StreamType) {
+  socket?.emit('webrtc-answer', { projectId, targetUserId, answer, streamType });
+}
+
+export function sendICECandidate(projectId: string, targetUserId: string, candidate: RTCIceCandidateInit, streamType?: StreamType) {
+  socket?.emit('webrtc-ice-candidate', { projectId, targetUserId, candidate, streamType });
+}
+
+export function sendWebRTCLeave(projectId: string, streamType?: StreamType) {
+  socket?.emit('webrtc-leave', { projectId, streamType });
 }

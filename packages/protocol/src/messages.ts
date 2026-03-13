@@ -1,5 +1,7 @@
 import type { SessionAction, PresenceInfo } from '@ghost/types';
 
+export type StreamType = 'camera' | 'screen';
+
 // ── Client → Server ──────────────────────────────────────────────────
 
 export interface ClientToServerEvents {
@@ -16,6 +18,28 @@ export interface ClientToServerEvents {
   'chat-message': (data: {
     projectId: string;
     text: string;
+  }) => void;
+  'webrtc-offer': (data: {
+    projectId: string;
+    targetUserId: string;
+    offer: RTCSessionDescriptionInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-answer': (data: {
+    projectId: string;
+    targetUserId: string;
+    answer: RTCSessionDescriptionInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-ice-candidate': (data: {
+    projectId: string;
+    targetUserId: string;
+    candidate: RTCIceCandidateInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-leave': (data: {
+    projectId: string;
+    streamType?: StreamType;
   }) => void;
 }
 
@@ -50,6 +74,25 @@ export interface ServerToClientEvents {
   }) => void;
   'user-left': (data: {
     userId: string;
+  }) => void;
+  'webrtc-offer': (data: {
+    fromUserId: string;
+    offer: RTCSessionDescriptionInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-answer': (data: {
+    fromUserId: string;
+    answer: RTCSessionDescriptionInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-ice-candidate': (data: {
+    fromUserId: string;
+    candidate: RTCIceCandidateInit;
+    streamType?: StreamType;
+  }) => void;
+  'webrtc-user-left': (data: {
+    userId: string;
+    streamType?: StreamType;
   }) => void;
   'error': (data: {
     message: string;

@@ -70,6 +70,7 @@ target_sources(GhostSession PRIVATE
     Source/UI/TransportBar.cpp
     Source/UI/WaveformDisplay.cpp
     Source/UI/DragDropZone.cpp
+    Source/UI/GhostWebView.cpp
     Source/UI/LoginPanel.cpp
     Source/UI/ProjectListPanel.cpp
     Source/UI/ProjectView.cpp

@@ -2,6 +2,7 @@
 
 #include "JuceHeader.h"
 #include "PluginProcessor.h"
+#include "../UI/GhostWebView.h"
 
 //==============================================================================
 class GhostSessionEditor : public juce::AudioProcessorEditor
@@ -16,8 +17,8 @@ public:
 private:
     GhostSessionProcessor& proc;
 
-    // The entire UI is rendered in a WebView
-    std::unique_ptr<juce::WebBrowserComponent> webView;
+    // The entire UI is rendered in a WebView with native drag support
+    std::unique_ptr<GhostWebView> webView;
 
     // Build the URL to navigate to (includes auth token if available)
     juce::String getAppUrl() const;

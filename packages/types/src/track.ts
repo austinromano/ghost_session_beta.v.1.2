@@ -1,4 +1,4 @@
-export type TrackType = 'audio' | 'midi' | 'drum' | 'loop';
+export type TrackType = 'audio' | 'midi' | 'drum' | 'loop' | 'fullmix';
 
 export interface Track {
   id: string;

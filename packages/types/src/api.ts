@@ -28,6 +28,7 @@ export interface CreateProjectRequest {
   description?: string;
   tempo?: number;
   key?: string;
+  genre?: string;
   timeSignature?: string;
 }
 

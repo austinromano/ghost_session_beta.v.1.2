@@ -26,6 +26,7 @@ export const projects = sqliteTable('projects', {
   ownerId: text('owner_id').notNull().references(() => users.id),
   tempo: real('tempo').default(140),
   key: text('key').default('C'),
+  genre: text('genre').default(''),
   timeSignature: text('time_signature').default('4/4'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
@@ -44,7 +45,7 @@ export const tracks = sqliteTable('tracks', {
   id: uuid().primaryKey(),
   projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  type: text('type', { enum: ['audio', 'midi', 'drum', 'loop'] }).notNull().default('audio'),
+  type: text('type', { enum: ['audio', 'midi', 'drum', 'loop', 'fullmix'] }).notNull().default('audio'),
   ownerId: text('owner_id').notNull().references(() => users.id),
   fileId: text('file_id'),
   fileName: text('file_name'),
@@ -98,5 +99,22 @@ export const files = sqliteTable('files', {
   fileSize: integer('file_size').notNull(),
   mimeType: text('mime_type').notNull(),
   s3Key: text('s3_key').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+});
+
+export const trackLikes = sqliteTable('track_likes', {
+  trackId: text('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.trackId, table.userId] }),
+}));
+
+export const notifications = sqliteTable('notifications', {
+  id: uuid().primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  message: text('message').notNull(),
+  read: integer('read', { mode: 'boolean' }).default(false),
   createdAt: timestamp('created_at').notNull(),
 });

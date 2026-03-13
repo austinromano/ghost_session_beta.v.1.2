@@ -14,6 +14,7 @@ const createProjectSchema = z.object({
   description: z.string().max(500).optional().default(''),
   tempo: z.number().min(30).max(300).optional().default(140),
   key: z.string().max(10).optional().default('C'),
+  genre: z.string().max(50).optional().default(''),
   timeSignature: z.string().max(10).optional().default('4/4'),
 });
 
@@ -22,6 +23,7 @@ const updateProjectSchema = z.object({
   description: z.string().max(500).optional(),
   tempo: z.number().min(30).max(300).optional(),
   key: z.string().max(10).optional(),
+  genre: z.string().max(50).optional(),
   timeSignature: z.string().max(10).optional(),
 });
 
@@ -176,6 +178,33 @@ projectRoutes.post('/:id/members', async (c) => {
   } catch {} // duplicate invitation
 
   return c.json({ success: true, message: 'Invitation sent' });
+});
+
+// Remove a member from a project (owner only)
+projectRoutes.delete('/:id/members/:userId', async (c) => {
+  const user = c.get('user') as AuthUser;
+  const projectId = c.req.param('id');
+  const targetUserId = c.req.param('userId');
+
+  // Check requester is the owner
+  const membership = db.select().from(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
+    .limit(1).all();
+
+  if (membership.length === 0 || membership[0].role !== 'owner') {
+    throw new HTTPException(403, { message: 'Only the project owner can remove members' });
+  }
+
+  // Can't remove yourself (the owner)
+  if (targetUserId === user.id) {
+    throw new HTTPException(400, { message: 'Cannot remove yourself from the project' });
+  }
+
+  db.delete(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, targetUserId)))
+    .run();
+
+  return c.json({ success: true });
 });
 
 export default projectRoutes;

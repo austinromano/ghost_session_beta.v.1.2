@@ -33,6 +33,7 @@ export function initDatabase() {
       owner_id TEXT NOT NULL REFERENCES users(id),
       tempo REAL DEFAULT 140,
       key TEXT DEFAULT 'C',
+      genre TEXT DEFAULT '',
       time_signature TEXT DEFAULT '4/4',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -100,6 +101,26 @@ export function initDatabase() {
       s3_key TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+
+    CREATE TABLE IF NOT EXISTS track_likes (
+      track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (track_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      read INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `);
+  // Migrations for existing databases
+  try { sqlite.exec(`ALTER TABLE projects ADD COLUMN genre TEXT DEFAULT ''`); } catch {}
+
   console.log('  Database initialized (SQLite)');
 }

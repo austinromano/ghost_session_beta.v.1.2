@@ -43,6 +43,8 @@ export const api = {
   deleteProject: (id: string) => request<void>('DELETE', `/projects/${id}`),
   inviteMember: (id: string, email: string, role = 'editor') =>
     request<void>('POST', `/projects/${id}/members`, { email, role }),
+  removeMember: (id: string, userId: string) =>
+    request<void>('DELETE', `/projects/${id}/members/${userId}`),
 
   // Tracks
   listTracks: (projectId: string) => request<Track[]>('GET', `/projects/${projectId}/tracks`),
@@ -67,6 +69,13 @@ export const api = {
   deleteComment: (projectId: string, commentId: string) =>
     request<void>('DELETE', `/projects/${projectId}/comments/${commentId}`),
 
+  // Users
+  listUsers: () => request<{ id: string; displayName: string; email: string; avatarUrl: string | null }[]>('GET', '/users'),
+
+  // Likes
+  toggleLike: (trackId: string) => request<{ liked: boolean; count: number }>('POST', `/tracks/${trackId}/like`),
+  getLike: (trackId: string) => request<{ liked: boolean; count: number }>('GET', `/tracks/${trackId}/like`),
+
   // Files
   getUploadUrl: (projectId: string, fileName: string, fileSize: number, mimeType: string) =>
     request<{ fileId: string; uploadUrl: string }>('POST', `/projects/${projectId}/files/upload-url`, {
@@ -74,4 +83,22 @@ export const api = {
     }),
   getDownloadUrl: (projectId: string, fileId: string) =>
     request<{ downloadUrl: string }>('GET', `/projects/${projectId}/files/${fileId}/download-url`),
+
+  // Direct file upload (local storage)
+  uploadFile: async (projectId: string, file: File): Promise<{ fileId: string; fileName: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const res = await fetch(`${BASE_URL}/projects/${projectId}/files/upload`, {
+      method: 'POST', headers, body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Upload failed');
+    return json.data;
+  },
+
+  // Direct file download URL (local storage) — includes token for drag-to-desktop
+  getDirectDownloadUrl: (projectId: string, fileId: string) =>
+    `${BASE_URL}/projects/${projectId}/files/${fileId}/download${authToken ? `?token=${authToken}` : ''}`,
 };

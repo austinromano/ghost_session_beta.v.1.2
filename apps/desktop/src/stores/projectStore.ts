@@ -13,6 +13,7 @@ interface ProjectState {
   fetchProject: (id: string) => Promise<void>;
   createProject: (data: { name: string; description?: string; tempo?: number; key?: string; timeSignature?: string }) => Promise<Project>;
 
+  updateProject: (projectId: string, data: { name?: string; tempo?: number; key?: string; genre?: string }) => Promise<void>;
   addTrack: (projectId: string, data: { name: string; type: string }) => Promise<void>;
   updateTrack: (projectId: string, trackId: string, data: Partial<Track>) => Promise<void>;
   deleteTrack: (projectId: string, trackId: string) => Promise<void>;
@@ -48,6 +49,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const project = await api.createProject(data);
     set((s) => ({ projects: [project, ...s.projects] }));
     return project;
+  },
+
+  updateProject: async (projectId, data) => {
+    await api.updateProject(projectId, data);
+    await get().fetchProject(projectId);
+    // Also update the project in the projects list
+    set((s) => ({
+      projects: s.projects.map((p) =>
+        p.id === projectId ? { ...p, ...data } : p
+      ),
+    }));
   },
 
   addTrack: async (projectId, data) => {

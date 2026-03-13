@@ -12,11 +12,12 @@ export interface AuthUser {
 
 export async function authMiddleware(c: Context, next: Next) {
   const header = c.req.header('Authorization');
-  if (!header?.startsWith('Bearer ')) {
+  const queryToken = c.req.query('token');
+  if (!header?.startsWith('Bearer ') && !queryToken) {
     throw new HTTPException(401, { message: 'Missing auth token' });
   }
 
-  const token = header.slice(7);
+  const token = header?.startsWith('Bearer ') ? header.slice(7) : queryToken!;
   const user = validateSession(token);
   if (!user) {
     throw new HTTPException(401, { message: 'Invalid or expired token' });

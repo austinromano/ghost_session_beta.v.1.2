@@ -7,6 +7,7 @@ export interface Project {
   ownerId: string;
   tempo: number;
   key: string;
+  genre: string;
   timeSignature: string;
   createdAt: string;
   updatedAt: string;

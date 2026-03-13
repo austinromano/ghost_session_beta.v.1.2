@@ -10,7 +10,7 @@ GhostSessionEditor::GhostSessionEditor(GhostSessionProcessor& p)
         .withKeepPageLoadedWhenBrowserIsHidden()
         .withUserAgent("GhostSession/2.0 JUCE-Plugin");
 
-    webView = std::make_unique<juce::WebBrowserComponent>(options);
+    webView = std::make_unique<GhostWebView>(options);
     addAndMakeVisible(*webView);
 
     // Navigate to the React app
