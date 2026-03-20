@@ -149,6 +149,13 @@ export function initDatabase() {
   // Migrations for existing databases
   try { sqlite.exec(`ALTER TABLE projects ADD COLUMN genre TEXT DEFAULT ''`); } catch {}
   try { sqlite.exec(`ALTER TABLE versions ADD COLUMN snapshot_json TEXT`); } catch {}
+  try { sqlite.exec(`ALTER TABLE projects ADD COLUMN project_type TEXT DEFAULT 'project'`); } catch {}
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS social_posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, text TEXT NOT NULL, project_id TEXT, audio_file_id TEXT, created_at TEXT NOT NULL)`);
+  try { sqlite.exec(`ALTER TABLE social_posts ADD COLUMN audio_file_id TEXT`); } catch {}
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS social_post_likes (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS social_post_comments (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL, text TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS social_post_reactions (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, user_id TEXT NOT NULL, emoji TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS follows (follower_id TEXT NOT NULL, following_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (follower_id, following_id))`);
 
   console.log('  Database initialized (SQLite)');
 }

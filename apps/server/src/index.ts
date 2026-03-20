@@ -17,6 +17,7 @@ import userRoutes from './routes/users.js';
 import likeRoutes from './routes/likes.js';
 import samplePackRoutes from './routes/samplepacks.js';
 import notificationRoutes from './routes/notifications.js';
+import socialRoutes from './routes/social.js';
 import { setupWebSocket } from './ws/index.js';
 import { initDatabase } from './db/index.js';
 
@@ -49,6 +50,7 @@ app.route('/api/v1/users', userRoutes);
 app.route('/api/v1/tracks', likeRoutes);
 app.route('/api/v1/sample-packs', samplePackRoutes);
 app.route('/api/v1/notifications', notificationRoutes);
+app.route('/api/v1/social', socialRoutes);
 
 // Serve the desktop app build for plugin WebView
 import { serveStatic } from '@hono/node-server/serve-static';

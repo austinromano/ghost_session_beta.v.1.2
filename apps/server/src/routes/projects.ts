@@ -17,6 +17,7 @@ const createProjectSchema = z.object({
   tempo: z.number().min(0).max(300).optional().default(0),
   key: z.string().max(10).optional().default(''),
   genre: z.string().max(50).optional().default(''),
+  projectType: z.string().optional().default('project'),
   timeSignature: z.string().max(10).optional().default('4/4'),
 });
 

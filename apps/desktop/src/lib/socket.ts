@@ -7,6 +7,11 @@ type GhostSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
 let socket: GhostSocket | null = null;
+let globalOnlineCallback: ((users: any[]) => void) | null = null;
+
+export function onGlobalOnlineUsers(cb: (users: { userId: string; displayName: string }[]) => void) {
+  globalOnlineCallback = cb;
+}
 
 export function connectSocket(token: string): GhostSocket {
   if (socket?.connected) return socket;
@@ -18,6 +23,9 @@ export function connectSocket(token: string): GhostSocket {
 
   socket.on('connect', () => console.log('[WS] Connected'));
   socket.on('disconnect', () => console.log('[WS] Disconnected'));
+  (socket as any).on('global:online-users', (users: any[]) => {
+    if (globalOnlineCallback) globalOnlineCallback(users);
+  });
 
   return socket;
 }

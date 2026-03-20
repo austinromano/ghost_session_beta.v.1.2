@@ -47,8 +47,19 @@ export function setupWebSocket(httpServer: HTTPServer) {
     next();
   });
 
+  // Track globally online users
+  const globalOnline = new Map<string, { userId: string; displayName: string }>();
+
+  function broadcastOnlineUsers() {
+    const list = Array.from(globalOnline.values());
+    io.emit('global:online-users' as any, list);
+  }
+
   io.on('connection', (socket) => {
     console.log(`[WS] ${socket.data.displayName} connected`);
+
+    globalOnline.set(socket.data.userId, { userId: socket.data.userId, displayName: socket.data.displayName });
+    broadcastOnlineUsers();
 
     registerSessionHandlers(io, socket);
     registerPresenceHandlers(io, socket);
@@ -57,6 +68,8 @@ export function setupWebSocket(httpServer: HTTPServer) {
 
     socket.on('disconnect', () => {
       console.log(`[WS] ${socket.data.displayName} disconnected`);
+      globalOnline.delete(socket.data.userId);
+      broadcastOnlineUsers();
     });
   });
 
