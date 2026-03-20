@@ -57,6 +57,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     setToken(null);
     localStorage.removeItem('ghost_token');
     localStorage.removeItem('ghost_user');
+    // Clear all stores so the next user doesn't see old data
+    const { useProjectStore } = await import('./projectStore');
+    useProjectStore.setState({ projects: [], currentProject: null, versions: [], loading: false });
+    const { useSessionStore } = await import('./sessionStore');
+    useSessionStore.setState({ chatMessages: [], onlineUsers: [], currentProjectId: null });
     set({ token: null, user: null, isAuthenticated: false });
   },
 
