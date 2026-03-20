@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { isPlugin } from '../lib/hostContext';
 import { api } from '../lib/api';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -15,7 +13,6 @@ export default function LoginPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { login, register, loading, error } = useAuthStore();
-  const navigate = isPlugin ? undefined : useNavigate();
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,7 +30,6 @@ export default function LoginPage() {
       await register(email, password, displayName);
       if (!useAuthStore.getState().isAuthenticated) return;
 
-      // Upload avatar after registration
       if (avatarFile) {
         try {
           const { avatarUrl } = await api.uploadAvatar(avatarFile);
@@ -50,7 +46,6 @@ export default function LoginPage() {
     } else {
       await login(email, password);
     }
-    if (useAuthStore.getState().isAuthenticated && navigate) navigate('/projects');
   };
 
   return (
@@ -66,7 +61,6 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <>
-              {/* Avatar picker */}
               <div className="flex flex-col items-center gap-2">
                 <button
                   type="button"
@@ -132,15 +126,9 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-ghost-text-muted mt-6">
           {isRegister ? 'Already have an account? ' : 'No account? '}
-          {isPlugin ? (
-            <button onClick={() => setIsRegister(!isRegister)} className="text-ghost-green hover:underline">
-              {isRegister ? 'Sign In' : 'Register'}
-            </button>
-          ) : (
-            <Link to={isRegister ? '/login' : '/register'} className="text-ghost-green hover:underline">
-              {isRegister ? 'Sign In' : 'Register'}
-            </Link>
-          )}
+          <button onClick={() => setIsRegister(!isRegister)} className="text-ghost-green hover:underline">
+            {isRegister ? 'Sign In' : 'Register'}
+          </button>
         </p>
       </div>
     </div>

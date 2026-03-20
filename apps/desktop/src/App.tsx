@@ -1,62 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { isPlugin } from './lib/hostContext';
-import AppShell from './components/layout/AppShell';
-import SessionShell from './components/layout/SessionShell';
 import PluginLayout from './components/plugin/PluginLayout';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ProjectsPage from './pages/ProjectsPage';
-import ProjectDetailPage from './pages/ProjectDetailPage';
-import SessionWorkspacePage from './pages/SessionWorkspacePage';
-import SettingsPage from './pages/SettingsPage';
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
 
 export default function App() {
-  // Plugin mode: show the classic plugin layout
-  if (isPlugin) {
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-    if (!isAuthenticated) return <LoginPage />;
-    return <PluginLayout />;
-  }
-
-  return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-
-      {/* Session workspace — full DAW-style layout */}
-      <Route
-        path="/sessions"
-        element={
-          <ProtectedRoute>
-            <SessionShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<SessionWorkspacePage />} />
-        <Route path=":id" element={<SessionWorkspacePage />} />
-      </Route>
-
-      {/* Standard app layout */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/projects" replace />} />
-        <Route path="projects" element={<ProjectsPage />} />
-        <Route path="projects/:id" element={<ProjectDetailPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-    </Routes>
-  );
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) return <LoginPage />;
+  return <PluginLayout />;
 }

@@ -1,12 +1,11 @@
 import { create } from 'zustand';
-import type { Project, ProjectDetail, Track, Version, Comment } from '@ghost/types';
+import type { Project, ProjectDetail, Track, Version } from '@ghost/types';
 import { api } from '../lib/api';
 
 interface ProjectState {
   projects: Project[];
   currentProject: ProjectDetail | null;
   versions: Version[];
-  comments: Comment[];
   loading: boolean;
 
   fetchProjects: () => Promise<void>;
@@ -20,17 +19,12 @@ interface ProjectState {
 
   fetchVersions: (projectId: string) => Promise<void>;
   createVersion: (projectId: string, data: { name: string; description?: string }) => Promise<void>;
-
-  fetchComments: (projectId: string) => Promise<void>;
-  addComment: (projectId: string, data: { text: string; positionBeats?: number; parentId?: string }) => Promise<void>;
-  deleteComment: (projectId: string, commentId: string) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   currentProject: null,
   versions: [],
-  comments: [],
   loading: false,
 
   fetchProjects: async () => {
@@ -54,7 +48,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   updateProject: async (projectId, data) => {
     await api.updateProject(projectId, data);
     await get().fetchProject(projectId);
-    // Also update the project in the projects list
     set((s) => ({
       projects: s.projects.map((p) =>
         p.id === projectId ? { ...p, ...data } : p
@@ -85,20 +78,5 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   createVersion: async (projectId, data) => {
     await api.createVersion(projectId, data);
     await get().fetchVersions(projectId);
-  },
-
-  fetchComments: async (projectId) => {
-    const comments = await api.listComments(projectId);
-    set({ comments });
-  },
-
-  addComment: async (projectId, data) => {
-    await api.addComment(projectId, data);
-    await get().fetchComments(projectId);
-  },
-
-  deleteComment: async (projectId, commentId) => {
-    await api.deleteComment(projectId, commentId);
-    await get().fetchComments(projectId);
   },
 }));

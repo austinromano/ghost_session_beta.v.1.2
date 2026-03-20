@@ -6,7 +6,6 @@ import Avatar from '../common/Avatar';
 import ChatPanel from '../session/ChatPanel';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { isPlugin } from '../../lib/hostContext';
 
 interface Invitation {
   id: string;
@@ -864,26 +863,19 @@ function StemRow({
   const handleDragStart = (e: React.DragEvent) => {
     if (!downloadUrl) return;
 
-    if (isPlugin) {
-      // Kill the browser drag completely — clear all data, set to none
-      e.dataTransfer.clearData();
-      e.dataTransfer.effectAllowed = 'none';
-      e.dataTransfer.dropEffect = 'none';
+    // Kill the browser drag completely — clear all data, set to none
+    e.dataTransfer.clearData();
+    e.dataTransfer.effectAllowed = 'none';
+    e.dataTransfer.dropEffect = 'none';
 
-      // Prevent double-trigger
-      if (dragTriggeredRef.current) return;
-      dragTriggeredRef.current = true;
-      setTimeout(() => { dragTriggeredRef.current = false; }, 2000);
+    // Prevent double-trigger
+    if (dragTriggeredRef.current) return;
+    dragTriggeredRef.current = true;
+    setTimeout(() => { dragTriggeredRef.current = false; }, 2000);
 
-      // Trigger JUCE native drag (the only drag Ableton should see)
-      const ghostUrl = `ghost://drag-to-daw?url=${encodeURIComponent(downloadUrl)}&fileName=${encodeURIComponent(name + '.wav')}`;
-      window.location.href = ghostUrl;
-      return;
-    }
-
-    // Browser/standalone: use Chromium DownloadURL
-    e.dataTransfer.setData('DownloadURL', `audio/wav:${name}.wav:${downloadUrl}`);
-    e.dataTransfer.effectAllowed = 'copy';
+    // Trigger JUCE native drag (the only drag Ableton should see)
+    const ghostUrl = `ghost://drag-to-daw?url=${encodeURIComponent(downloadUrl)}&fileName=${encodeURIComponent(name + '.wav')}`;
+    window.location.href = ghostUrl;
   };
 
   const handlePlay = () => {
