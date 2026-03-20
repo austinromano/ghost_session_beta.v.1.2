@@ -29,34 +29,56 @@ jobs:
       - name: Build VST3
         run: |
           cd apps/plugin
-          cmake --build build --config Release -j$(sysctl -n hw.ncpu) 2>&1 | grep "error:" || true
-          find build -name "Ghost Session.vst3" -type d | grep -q . || exit 1
+          cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Find build output
+        run: |
+          echo "=== All .vst3 files ==="
+          find . -name "*.vst3" -type d 2>/dev/null
+          find . -name "*.vst3" -type f 2>/dev/null
+          echo "=== Artefacts dir ==="
+          ls -laR apps/plugin/build/GhostSession_artefacts/ 2>/dev/null || echo "No artefacts dir found"
+          echo "=== Any Ghost Session files ==="
+          find . -name "Ghost*" -not -path "*/Source/*" -not -path "*/.git/*" 2>/dev/null
 
       - name: Create macOS Installer DMG
         run: |
           mkdir -p dmg-content
-          find apps/plugin/build -name "Ghost Session.vst3" -type d | head -1 | xargs -I{} cp -r {} dmg-content/
+
+          # Try multiple possible paths
+          VST3_PATH=$(find . -path "*/Ghost Session.vst3/Contents" -type d 2>/dev/null | head -1 | sed 's|/Contents||')
+          if [ -z "$VST3_PATH" ]; then
+            echo "ERROR: Ghost Session.vst3 not found!"
+            find . -name "*.vst3" 2>/dev/null
+            exit 1
+          fi
+          echo "Found VST3 at: $VST3_PATH"
+          cp -r "$VST3_PATH" dmg-content/
 
           cat > dmg-content/Install.command << 'INSTALLSCRIPT'
-          #!/bin/bash
-          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-          echo ""
-          echo "  ╔═══════════════════════════════════════╗"
-          echo "  ║     Ghost Session VST3 Installer      ║"
-          echo "  ╚═══════════════════════════════════════╝"
-          echo ""
-          echo "  Installing Ghost Session VST3 plugin..."
-          echo ""
-          sudo mkdir -p "/Library/Audio/Plug-Ins/VST3"
-          sudo cp -r "$SCRIPT_DIR/Ghost Session.vst3" "/Library/Audio/Plug-Ins/VST3/"
-          echo "  ✓ Installed to /Library/Audio/Plug-Ins/VST3/"
-          echo ""
-          echo "  Open your DAW and scan for new plugins."
-          echo "  Look for 'Ghost Session' by Ghost Audio."
-          echo ""
-          read -p "  Press Enter to close..."
-          INSTALLSCRIPT
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+echo ""
+echo "  ╔═══════════════════════════════════════╗"
+echo "  ║     Ghost Session VST3 Installer      ║"
+echo "  ╚═══════════════════════════════════════╝"
+echo ""
+echo "  Installing Ghost Session VST3 plugin..."
+echo ""
+sudo mkdir -p "/Library/Audio/Plug-Ins/VST3"
+sudo cp -r "$SCRIPT_DIR/Ghost Session.vst3" "/Library/Audio/Plug-Ins/VST3/"
+echo "  ✓ Installed to /Library/Audio/Plug-Ins/VST3/"
+echo ""
+echo "  Open your DAW and scan for new plugins."
+echo "  Look for 'Ghost Session' by Ghost Audio."
+echo ""
+read -p "  Press Enter to close..."
+INSTALLSCRIPT
           chmod +x dmg-content/Install.command
+
+          echo "=== DMG contents ==="
+          ls -laR dmg-content/
+          du -sh dmg-content/*
 
           hdiutil create -volname "Ghost Session" \
             -srcfolder dmg-content \
@@ -84,10 +106,12 @@ jobs:
 
             ### Install
             1. Open the DMG
-            2. Double-click `Install.command`
+            2. Right-click `Install.command` → Open (first time only)
             3. Enter your Mac password when prompted
             4. Open Ableton/Logic and scan for plugins
             5. Add **Ghost Session** to any track
+
+            Or manually copy `Ghost Session.vst3` to `/Library/Audio/Plug-Ins/VST3/`
 
             ### Requirements
             - macOS 11+ (Big Sur or later)
