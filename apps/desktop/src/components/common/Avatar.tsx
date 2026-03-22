@@ -24,8 +24,9 @@ export default function Avatar({ name, src, colour, size = 'md' }: AvatarProps) 
   const bg = colour || nameToColor(name);
 
   if (src) {
-    // Avatar paths are like /api/v1/auth/avatars/... — just prepend the origin
-    const imgSrc = src.startsWith('/') ? `${window.location.origin}${src}` : src;
+    // Avatar paths are like /api/v1/auth/avatars/... — prepend server origin (strip /api/v1 if present)
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace(/\/api\/v1$/, '');
+    const imgSrc = src.startsWith('/') ? `${base}${src}` : src;
     return (
       <img
         src={imgSrc}
