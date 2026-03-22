@@ -950,14 +950,7 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
         dragOver ? 'bg-ghost-green/[0.04] border border-ghost-green/30 shadow-glow-green' : 'glass-subtle'
       }`}
     >
-      <div className="flex items-center gap-3 px-4 py-2.5">
-        <button className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center text-ghost-text-muted hover:text-ghost-green hover:bg-ghost-green/10 transition-all">
-          <svg width="8" height="10" viewBox="0 0 10 12" fill="currentColor"><polygon points="0,0 10,6 0,12" /></svg>
-        </button>
-        <span className="text-[12px] font-semibold text-white/50 uppercase tracking-[0.1em]">{isBeat ? 'Beat' : 'Full Mix'}</span>
-        <div className="flex-1" />
-      </div>
-      <div className={`h-[68px] relative overflow-hidden transition-colors ${dragOver ? 'bg-ghost-green/[0.03]' : 'bg-black/20'}`}>
+      <div className={`h-[72px] relative overflow-hidden rounded-xl transition-colors ${dragOver ? 'bg-ghost-green/[0.03]' : 'bg-black/20'}`}>
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
           <Waveform seed="fullmix-demo-placeholder" height={68} />
         </div>
@@ -973,7 +966,7 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              <span className={`text-[13px] ${dragOver ? 'text-ghost-green font-medium' : 'text-white/30'}`}>{isBeat ? 'Drop your beat here' : 'Drop your mix here'}</span>
+              <span className={`text-[13px] ${dragOver ? 'text-ghost-green font-medium' : 'text-white/30'}`}>{isBeat ? 'Drop your beat here' : 'Drag & drop files here'}</span>
               <div className="flex-1" />
               <button
                 onClick={handleBrowse}
@@ -1396,7 +1389,165 @@ function SamplePackContentView({
           </div>
         </div>
 
-        {/* Collaborators bar */}
+        {/* Project info bar */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 glass-subtle px-5 py-3 min-w-0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00FFC8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <input
+                      className="text-[15px] font-bold text-white bg-white/[0.04] border border-white/[0.08] outline-none focus:border-ghost-green/30 px-2 py-1 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
+                      value={projectName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProjectName(val);
+                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
+                        projectNameTimer.current = setTimeout(() => {
+                          if (val.trim()) updateProject(currentProject.id, { name: val });
+                        }, 500);
+                      }}
+                      onBlur={() => {
+                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
+                        if (projectName.trim() && projectName !== currentProject.name) {
+                          updateProject(currentProject.id, { name: projectName });
+                        }
+                      }}
+                    />
+                    <span className="text-[12px] text-ghost-text-muted uppercase tracking-wider font-semibold shrink-0">BPM</span>
+                    {editingField === 'tempo' ? (
+                      <input
+                        autoFocus
+                        type="number"
+                        className="w-14 text-[14px] font-bold text-white bg-ghost-surface-hover px-1.5 py-0.5 rounded border border-ghost-green/50 outline-none shrink-0"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                        defaultValue={currentProject.tempo || ''}
+                        placeholder="___"
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val) && val > 0) updateProject(currentProject.id, { tempo: val });
+                          setEditingField(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingField(null);
+                        }}
+                      />
+                    ) : (
+                      <span
+                        onClick={() => setEditingField('tempo')}
+                        className="text-[14px] font-bold text-white shrink-0 cursor-pointer hover:text-ghost-green transition-colors"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                      >{currentProject.tempo || '___'}</span>
+                    )}
+                    <div className="w-px h-4 bg-ghost-border shrink-0" />
+                    <span className="text-[12px] text-ghost-text-muted uppercase tracking-wider font-semibold shrink-0">Key</span>
+                    {editingField === 'key' ? (
+                      <input
+                        autoFocus
+                        className="w-12 text-[14px] font-bold text-white bg-ghost-surface-hover px-1.5 py-0.5 rounded border border-ghost-green/50 outline-none shrink-0"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                        defaultValue={currentProject.key || ''}
+                        placeholder="_"
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          if (val) updateProject(currentProject.id, { key: val });
+                          setEditingField(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingField(null);
+                        }}
+                      />
+                    ) : (
+                      <span
+                        onClick={() => setEditingField('key')}
+                        className="text-[14px] font-bold text-white shrink-0 cursor-pointer hover:text-ghost-green transition-colors"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                      >{currentProject.key || '_'}</span>
+                    )}
+                    {currentProject.updatedAt && (
+                      <>
+                        <div className="w-px h-4 bg-ghost-border shrink-0" />
+                        <span className="text-[11px] text-ghost-text-muted flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          <span className="text-ghost-green font-medium">
+                            {new Date(currentProject.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </span>
+                        </span>
+                      </>
+                    )}
+                    {/* Project menu — far right */}
+                    <div className="relative" ref={projectMenuRef}>
+                      <button
+                        onClick={() => setShowProjectMenu(!showProjectMenu)}
+                        className="w-6 h-6 flex items-center justify-center rounded text-ghost-text-muted hover:text-white hover:bg-ghost-surface-hover transition-colors"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="5" r="2" />
+                          <circle cx="12" cy="12" r="2" />
+                          <circle cx="12" cy="19" r="2" />
+                        </svg>
+                      </button>
+                      {showProjectMenu && (
+                        <div className="absolute right-0 top-full mt-1 w-40 bg-[#111214] rounded-lg shadow-popup animate-popup z-50 border border-white/5 py-1">
+                          <button
+                            onClick={handleShareProject}
+                            className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-ghost-surface-hover hover:text-white transition-colors flex items-center gap-2"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                              <polyline points="16 6 12 2 8 6" />
+                              <line x1="12" y1="2" x2="12" y2="15" />
+                            </svg>
+                            Share to Feed
+                          </button>
+                          <button
+                            onClick={() => { setShowProjectMenu(false); setShowInvite(true); }}
+                            className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-ghost-surface-hover hover:text-white transition-colors flex items-center gap-2"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                              <circle cx="8.5" cy="7" r="4" />
+                              <line x1="20" y1="8" x2="20" y2="14" />
+                              <line x1="23" y1="11" x2="17" y2="11" />
+                            </svg>
+                            Invite Collaborator
+                          </button>
+                          <div className="h-px bg-white/5 mx-2 my-1" />
+                          {currentProject.ownerId === user?.id ? (
+                            <button
+                              onClick={handleDeleteProject}
+                              className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                              Delete Project
+                            </button>
+                          ) : (
+                            <button
+                              onClick={handleLeaveProject}
+                              className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                              </svg>
+                              Leave Project
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collaborators bar */}
         {(() => {
           const { user } = useAuthStore.getState();
           const displayMembers = members.length > 0 ? members : user ? [{ userId: user.id, displayName: user.displayName, role: 'owner', avatarUrl: user.avatarUrl }] : [];
@@ -1959,7 +2110,7 @@ export default function PluginLayout() {
       const res = await fetch(`${API_BASE}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('ghost_token')}` },
-        body: JSON.stringify({ name: 'New Beat', projectType: 'beat' }),
+        body: JSON.stringify({ name: 'Untitled', projectType: 'beat' }),
       });
       const d = await res.json();
       if (d.data) {
@@ -2067,7 +2218,7 @@ export default function PluginLayout() {
     if (selectedProjectId) { leave(); audioCleanup(); }
     // Handle "New Beat" — create a new project for the beat
     if (id === '__beats__') {
-      const p = await createProject({ name: 'New Beat', projectType: 'beat' } as any);
+      const p = await createProject({ name: 'Untitled', projectType: 'beat' } as any);
       await fetchProjects();
       setSelectedProjectId(p.id);
       setSelectedPackId(null);
@@ -2159,7 +2310,7 @@ export default function PluginLayout() {
   };
 
   const handleCreate = async () => {
-    const p = await createProject({ name: 'New Project' });
+    const p = await createProject({ name: 'Untitled' });
     await fetchProjects();
     selectProject(p.id);
   };
@@ -2403,6 +2554,105 @@ export default function PluginLayout() {
               <div className="flex-1 flex flex-col min-w-0 glass glass-glow rounded-2xl overflow-hidden">
               <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
                 {shareStatus && <div className="mb-3 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-[13px] text-purple-300 font-medium text-center">{shareStatus}</div>}
+                {/* Project info bar */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 glass-subtle px-5 py-3 min-w-0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00FFC8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <input
+                      className="text-[15px] font-bold text-white bg-white/[0.04] border border-white/[0.08] outline-none focus:border-ghost-green/30 px-2 py-1 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
+                      value={projectName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProjectName(val);
+                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
+                        projectNameTimer.current = setTimeout(() => {
+                          if (val.trim()) updateProject(currentProject.id, { name: val });
+                        }, 500);
+                      }}
+                      onBlur={() => {
+                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
+                        if (projectName.trim() && projectName !== currentProject.name) {
+                          updateProject(currentProject.id, { name: projectName });
+                        }
+                      }}
+                    />
+                    <div className="w-px h-5 bg-white/10 shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[11px] text-ghost-text-muted/60 uppercase tracking-wider">BPM</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={3}
+                        className="w-12 text-[14px] font-bold text-white bg-white/[0.04] border border-white/[0.08] outline-none focus:border-ghost-green/30 px-1.5 py-1 rounded-md transition-colors text-center cursor-text"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                        value={currentProject.tempo || ''}
+                        placeholder=""
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 3);
+                          if (val) updateProject(currentProject.id, { tempo: parseInt(val) });
+                        }}
+                      />
+                    </div>
+                    <div className="w-px h-5 bg-white/10 shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[11px] text-ghost-text-muted/60 uppercase tracking-wider">Key</span>
+                      <input
+                        type="text"
+                        maxLength={2}
+                        className="w-10 text-[14px] font-bold text-white bg-white/[0.04] border border-white/[0.08] outline-none focus:border-ghost-green/30 px-1.5 py-1 rounded-md transition-colors text-center cursor-text"
+                        style={{ fontFamily: "'Consolas', monospace" }}
+                        value={currentProject.key || ''}
+                        placeholder=""
+                        onChange={(e) => {
+                          const val = e.target.value.slice(0, 2);
+                          updateProject(currentProject.id, { key: val });
+                        }}
+                      />
+                    </div>
+                    {currentProject.updatedAt && (
+                      <>
+                        <div className="w-px h-4 bg-ghost-border shrink-0" />
+                        <span className="text-[11px] text-ghost-text-muted flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                          <span className="text-ghost-green font-medium">{new Date(currentProject.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                        </span>
+                      </>
+                    )}
+                    <div className="relative" ref={projectMenuRef}>
+                      <button onClick={() => setShowProjectMenu(!showProjectMenu)} className="w-6 h-6 flex items-center justify-center rounded text-ghost-text-muted hover:text-white hover:bg-ghost-surface-hover transition-colors">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                      </button>
+                      {showProjectMenu && createPortal(
+                        <div data-project-menu-portal className="fixed w-40 glass rounded-lg shadow-popup animate-popup border border-white/10 py-1" style={{ zIndex: 9999, top: projectMenuRef.current?.getBoundingClientRect().bottom! + 4, left: projectMenuRef.current?.getBoundingClientRect().right! - 160 }}>
+                          <button onClick={handleShareProject} className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-white/[0.06] hover:text-white transition-colors flex items-center gap-2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+                            Share to Feed
+                          </button>
+                          <button onClick={() => { setShowProjectMenu(false); setShowInvite(true); }} className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-white/[0.06] hover:text-white transition-colors flex items-center gap-2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                            Invite Collaborator
+                          </button>
+                          <div className="h-px bg-white/5 mx-2 my-1" />
+                          {currentProject.ownerId === user?.id ? (
+                            <button onClick={handleDeleteProject} className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                              Delete Project
+                            </button>
+                          ) : (
+                            <button onClick={handleLeaveProject} className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                              Leave Project
+                            </button>
+                          )}
+                        </div>,
+                        document.body
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Collaborators bar */}
                 <div className="mb-4">
                 <div className="flex items-center gap-4 glass-subtle px-5 py-3">
@@ -2455,164 +2705,6 @@ export default function PluginLayout() {
                   </button>
 
                 </div>
-                </div>
-
-                {/* Project info bar */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-3 glass-subtle px-5 py-3 min-w-0">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00FFC8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                    </svg>
-                    <input
-                      className="text-[15px] font-bold text-white bg-transparent border-none outline-none hover:bg-ghost-surface-hover px-2 py-1 rounded-lg transition-colors min-w-[60px] flex-1"
-                      value={projectName}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProjectName(val);
-                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
-                        projectNameTimer.current = setTimeout(() => {
-                          if (val.trim()) updateProject(currentProject.id, { name: val });
-                        }, 500);
-                      }}
-                      onBlur={() => {
-                        if (projectNameTimer.current) clearTimeout(projectNameTimer.current);
-                        if (projectName.trim() && projectName !== currentProject.name) {
-                          updateProject(currentProject.id, { name: projectName });
-                        }
-                      }}
-                    />
-                    <span className="text-[12px] text-ghost-text-muted uppercase tracking-wider font-semibold shrink-0">BPM</span>
-                    {editingField === 'tempo' ? (
-                      <input
-                        autoFocus
-                        type="number"
-                        className="w-14 text-[14px] font-bold text-white bg-ghost-surface-hover px-1.5 py-0.5 rounded border border-ghost-green/50 outline-none shrink-0"
-                        style={{ fontFamily: "'Consolas', monospace" }}
-                        defaultValue={currentProject.tempo || ''}
-                        placeholder="___"
-                        onBlur={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val) && val > 0) updateProject(currentProject.id, { tempo: val });
-                          setEditingField(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingField(null);
-                        }}
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditingField('tempo')}
-                        className="text-[14px] font-bold text-white shrink-0 cursor-pointer hover:text-ghost-green transition-colors"
-                        style={{ fontFamily: "'Consolas', monospace" }}
-                      >{currentProject.tempo || '___'}</span>
-                    )}
-                    <div className="w-px h-4 bg-ghost-border shrink-0" />
-                    <span className="text-[12px] text-ghost-text-muted uppercase tracking-wider font-semibold shrink-0">Key</span>
-                    {editingField === 'key' ? (
-                      <input
-                        autoFocus
-                        className="w-12 text-[14px] font-bold text-white bg-ghost-surface-hover px-1.5 py-0.5 rounded border border-ghost-green/50 outline-none shrink-0"
-                        style={{ fontFamily: "'Consolas', monospace" }}
-                        defaultValue={currentProject.key || ''}
-                        placeholder="_"
-                        onBlur={(e) => {
-                          const val = e.target.value.trim();
-                          if (val) updateProject(currentProject.id, { key: val });
-                          setEditingField(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingField(null);
-                        }}
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditingField('key')}
-                        className="text-[14px] font-bold text-white shrink-0 cursor-pointer hover:text-ghost-green transition-colors"
-                        style={{ fontFamily: "'Consolas', monospace" }}
-                      >{currentProject.key || '_'}</span>
-                    )}
-                    {currentProject.updatedAt && (
-                      <>
-                        <div className="w-px h-4 bg-ghost-border shrink-0" />
-                        <span className="text-[11px] text-ghost-text-muted flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
-                          <span className="text-ghost-green font-medium">
-                            {new Date(currentProject.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
-                          </span>
-                        </span>
-                      </>
-                    )}
-                    {/* Project menu — far right */}
-                    <div className="relative" ref={projectMenuRef}>
-                      <button
-                        onClick={() => setShowProjectMenu(!showProjectMenu)}
-                        className="w-6 h-6 flex items-center justify-center rounded text-ghost-text-muted hover:text-white hover:bg-ghost-surface-hover transition-colors"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="12" cy="5" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="19" r="2" />
-                        </svg>
-                      </button>
-                      {showProjectMenu && (
-                        <div className="absolute right-0 top-full mt-1 w-40 bg-[#111214] rounded-lg shadow-popup animate-popup z-50 border border-white/5 py-1">
-                          <button
-                            onClick={handleShareProject}
-                            className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-ghost-surface-hover hover:text-white transition-colors flex items-center gap-2"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                              <polyline points="16 6 12 2 8 6" />
-                              <line x1="12" y1="2" x2="12" y2="15" />
-                            </svg>
-                            Share to Feed
-                          </button>
-                          <button
-                            onClick={() => { setShowProjectMenu(false); setShowInvite(true); }}
-                            className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-text-secondary hover:bg-ghost-surface-hover hover:text-white transition-colors flex items-center gap-2"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                              <circle cx="8.5" cy="7" r="4" />
-                              <line x1="20" y1="8" x2="20" y2="14" />
-                              <line x1="23" y1="11" x2="17" y2="11" />
-                            </svg>
-                            Invite Collaborator
-                          </button>
-                          <div className="h-px bg-white/5 mx-2 my-1" />
-                          {currentProject.ownerId === user?.id ? (
-                            <button
-                              onClick={handleDeleteProject}
-                              className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                              Delete Project
-                            </button>
-                          ) : (
-                            <button
-                              onClick={handleLeaveProject}
-                              className="w-full px-3 py-1.5 text-[13px] text-left text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors flex items-center gap-2"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                <polyline points="16 17 21 12 16 7" />
-                                <line x1="21" y1="12" x2="9" y2="12" />
-                              </svg>
-                              Leave Project
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Version History panel */}
@@ -2668,15 +2760,14 @@ export default function PluginLayout() {
                 {/* Full Mix drop zone */}
                 <FullMixDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} isBeat={isBeatView} />
 
-                {/* Full Mix rows */}
-                {fullMixTracks.length > 0 && debugLog('fullMixTracks[0]: id=' + fullMixTracks[0].id + ' fileId=' + fullMixTracks[0].fileId + ' projectId=' + selectedProjectId)}
+                {/* All tracks */}
                 <div className="space-y-2 mt-2">
-                  {fullMixTracks.map((t: any) => (
+                  {currentProject.tracks.map((t: any) => (
                     <StemRow
                       key={t.id}
                       trackId={t.id}
-                      name={t.name || t.fileName || 'Full Mix'}
-                      type="fullmix"
+                      name={t.name || t.fileName || 'Track'}
+                      type={t.type || 'audio'}
                       fileId={t.fileId}
                       projectId={selectedProjectId!}
                       createdAt={t.createdAt}
@@ -2685,32 +2776,6 @@ export default function PluginLayout() {
                     />
                   ))}
                 </div>
-
-                {/* Drop zone for adding stems — hidden for beats */}
-                {!isBeatView && (
-                  <div className="mt-4">
-                    <DropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} />
-                  </div>
-                )}
-
-                {/* Stem rows — hidden for beats */}
-                {!isBeatView && (
-                  <div className="space-y-2 mt-2">
-                    {currentProject.tracks.filter((t: any) => t.type !== 'fullmix').map((t) => (
-                      <StemRow
-                        key={t.id}
-                        trackId={t.id}
-                        name={t.name}
-                        type={t.type || 'audio'}
-                        fileId={t.fileId}
-                        projectId={selectedProjectId!}
-                        createdAt={t.createdAt}
-                        onDelete={() => deleteTrack(selectedProjectId!, t.id)}
-                        onRename={(newName) => updateTrack(selectedProjectId!, t.id, { name: newName })}
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
 
               </div>
