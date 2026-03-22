@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { files, projectMembers, users } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, type AuthUser } from '../middleware/auth.js';
+import { isR2Configured, uploadToR2 } from '../services/storage.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -17,8 +18,7 @@ sessionRoutes.post('/upload', async (c) => {
   const user = c.get('user') as AuthUser;
   const projectId = c.req.param('id');
 
-  // Check membership
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0 || membership[0].role === 'viewer') {
@@ -35,22 +35,28 @@ sessionRoutes.post('/upload', async (c) => {
   const fileName = (file as File).name || 'session';
   const buffer = Buffer.from(await (file as File).arrayBuffer());
   const fileSize = buffer.length;
+  const mimeType = (file as File).type || 'application/octet-stream';
 
-  // Store locally
-  const dir = join(UPLOAD_DIR, projectId);
-  await mkdir(dir, { recursive: true });
-  const localPath = join(dir, `${fileId}_${fileName}`);
-  await writeFile(localPath, buffer);
+  let s3Key: string;
 
-  // Record in DB
-  db.insert(files).values({
+  if (isR2Configured()) {
+    s3Key = `projects/${projectId}/${fileId}/${fileName}`;
+    await uploadToR2(s3Key, buffer, mimeType);
+  } else {
+    const dir = join(UPLOAD_DIR, projectId);
+    await mkdir(dir, { recursive: true });
+    s3Key = join(dir, `${fileId}_${fileName}`);
+    await writeFile(s3Key, buffer);
+  }
+
+  await db.insert(files).values({
     id: fileId,
     projectId,
     uploadedBy: user.id,
     fileName,
     fileSize,
-    mimeType: (file as File).type || 'application/octet-stream',
-    s3Key: localPath,
+    mimeType,
+    s3Key,
     createdAt: new Date().toISOString(),
   }).run();
 
@@ -62,15 +68,14 @@ sessionRoutes.get('/', async (c) => {
   const user = c.get('user') as AuthUser;
   const projectId = c.req.param('id');
 
-  // Check membership
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0) {
     throw new HTTPException(403, { message: 'Not a member' });
   }
 
-  const result = db.select({
+  const result = await db.select({
     id: files.id,
     fileName: files.fileName,
     fileSize: files.fileSize,

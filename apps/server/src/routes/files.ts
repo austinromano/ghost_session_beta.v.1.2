@@ -5,12 +5,11 @@ import { db } from '../db/index.js';
 import { files, projectMembers } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, type AuthUser } from '../middleware/auth.js';
-import { getUploadUrl, getDownloadUrl } from '../services/storage.js';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { getUploadUrl, getDownloadUrl, isR2Configured, uploadToR2, downloadFromR2 } from '../services/storage.js';
+import { createReadStream } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 
 const UPLOADS_DIR = resolve(import.meta.dirname, '../../uploads');
 
@@ -28,7 +27,7 @@ fileRoutes.post('/upload-url', async (c) => {
   const projectId = c.req.param('id');
   const body = uploadUrlSchema.parse(await c.req.json());
 
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0 || membership[0].role === 'viewer') {
@@ -38,7 +37,7 @@ fileRoutes.post('/upload-url', async (c) => {
   const fileId = crypto.randomUUID();
   const s3Key = `projects/${projectId}/${fileId}/${body.fileName}`;
 
-  db.insert(files).values({
+  await db.insert(files).values({
     id: fileId, projectId, uploadedBy: user.id,
     fileName: body.fileName, fileSize: body.fileSize, mimeType: body.mimeType,
     s3Key, createdAt: new Date().toISOString(),
@@ -48,17 +47,16 @@ fileRoutes.post('/upload-url', async (c) => {
     const url = await getUploadUrl(s3Key, body.mimeType);
     return c.json({ success: true, data: { fileId, uploadUrl: url } });
   } catch {
-    // S3 not configured — return fileId anyway for MVP
     return c.json({ success: true, data: { fileId, uploadUrl: null } });
   }
 });
 
-// Direct file upload (local storage fallback when S3 is not configured)
+// Direct file upload (uploads to R2 if configured, otherwise local disk)
 fileRoutes.post('/upload', async (c) => {
   const user = c.get('user') as AuthUser;
   const projectId = c.req.param('id');
 
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0 || membership[0].role === 'viewer') {
@@ -70,34 +68,59 @@ fileRoutes.post('/upload', async (c) => {
   if (!file) throw new HTTPException(400, { message: 'No file provided' });
 
   const fileId = crypto.randomUUID();
-  const projectDir = join(UPLOADS_DIR, projectId);
-  await mkdir(projectDir, { recursive: true });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mimeType = file.type || 'audio/wav';
 
-  const filePath = join(projectDir, `${fileId}_${file.name}`);
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  await import('node:fs/promises').then(fsp => fsp.writeFile(filePath, buffer));
+  let s3Key: string;
 
-  db.insert(files).values({
+  if (isR2Configured()) {
+    s3Key = `projects/${projectId}/${fileId}/${file.name}`;
+    await uploadToR2(s3Key, buffer, mimeType);
+  } else {
+    const projectDir = join(UPLOADS_DIR, projectId);
+    await mkdir(projectDir, { recursive: true });
+    s3Key = join(projectDir, `${fileId}_${file.name}`);
+    const fsp = await import('node:fs/promises');
+    await fsp.writeFile(s3Key, buffer);
+  }
+
+  await db.insert(files).values({
     id: fileId, projectId, uploadedBy: user.id,
-    fileName: file.name, fileSize: file.size, mimeType: file.type || 'audio/wav',
-    s3Key: filePath, createdAt: new Date().toISOString(),
+    fileName: file.name, fileSize: file.size, mimeType,
+    s3Key, createdAt: new Date().toISOString(),
   }).run();
 
   return c.json({ success: true, data: { fileId, fileName: file.name } });
 });
 
-// Direct file download (local storage)
+// Direct file download (streams from R2 if key looks like an S3 path, otherwise local disk)
 fileRoutes.get('/:fileId/download', async (c) => {
   const fileId = c.req.param('fileId');
-  const [file] = db.select().from(files).where(eq(files.id, fileId)).limit(1).all();
+  const [file] = await db.select().from(files).where(eq(files.id, fileId)).limit(1).all();
   if (!file) throw new HTTPException(404, { message: 'File not found' });
 
-  const filePath = file.s3Key;
+  const isS3Path = file.s3Key.startsWith('projects/');
 
+  if (isS3Path && isR2Configured()) {
+    try {
+      const { stream, contentLength, contentType } = await downloadFromR2(file.s3Key);
+      return new Response(stream, {
+        headers: {
+          'Content-Type': contentType || file.mimeType || 'audio/wav',
+          'Content-Disposition': `inline; filename="${file.fileName}"`,
+          'Content-Length': contentLength.toString(),
+          'Accept-Ranges': 'bytes',
+        },
+      });
+    } catch {
+      throw new HTTPException(404, { message: 'File not found in storage' });
+    }
+  }
+
+  // Local disk fallback
   try {
-    const fileStat = await stat(filePath);
-    const stream = createReadStream(filePath);
+    const fileStat = await stat(file.s3Key);
+    const stream = createReadStream(file.s3Key);
 
     c.header('Content-Type', file.mimeType || 'audio/wav');
     c.header('Content-Disposition', `inline; filename="${file.fileName}"`);
@@ -114,7 +137,7 @@ fileRoutes.get('/:fileId/download', async (c) => {
 
 fileRoutes.get('/:fileId/download-url', async (c) => {
   const fileId = c.req.param('fileId');
-  const [file] = db.select().from(files).where(eq(files.id, fileId)).limit(1).all();
+  const [file] = await db.select().from(files).where(eq(files.id, fileId)).limit(1).all();
   if (!file) throw new HTTPException(404, { message: 'File not found' });
 
   try {
@@ -127,7 +150,7 @@ fileRoutes.get('/:fileId/download-url', async (c) => {
 
 fileRoutes.get('/', async (c) => {
   const projectId = c.req.param('id');
-  const result = db.select().from(files).where(eq(files.projectId, projectId)).all();
+  const result = await db.select().from(files).where(eq(files.projectId, projectId)).all();
   return c.json({ success: true, data: result });
 });
 

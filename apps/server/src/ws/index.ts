@@ -36,7 +36,7 @@ export function setupWebSocket(httpServer: HTTPServer) {
       return next(new Error('Authentication required'));
     }
 
-    const user = validateSession(token);
+    const user = await validateSession(token);
     if (!user) {
       return next(new Error('Invalid token'));
     }

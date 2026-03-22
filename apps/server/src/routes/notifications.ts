@@ -11,7 +11,7 @@ notificationRoutes.use('*', authMiddleware);
 notificationRoutes.get('/', async (c) => {
   const user = c.get('user') as AuthUser;
 
-  const results = db.select()
+  const results = await db.select()
     .from(notifications)
     .where(and(eq(notifications.userId, user.id), eq(notifications.read, false)))
     .orderBy(desc(notifications.createdAt))
@@ -25,7 +25,7 @@ notificationRoutes.get('/', async (c) => {
 notificationRoutes.post('/read', async (c) => {
   const user = c.get('user') as AuthUser;
 
-  db.update(notifications)
+  await db.update(notifications)
     .set({ read: true })
     .where(and(eq(notifications.userId, user.id), eq(notifications.read, false)))
     .run();

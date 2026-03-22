@@ -21,8 +21,8 @@ import socialRoutes from './routes/social.js';
 import { setupWebSocket } from './ws/index.js';
 import { initDatabase } from './db/index.js';
 
-// Initialize database tables
-initDatabase();
+// Initialize database tables (async now with Turso)
+await initDatabase();
 
 const app = new Hono();
 
@@ -66,26 +66,30 @@ app.use('/assets/*', serveStatic({ root: '../desktop/dist' }));
 app.get('/', serveStatic({ root: './public', path: '/index.html' }));
 app.get('/', serveStatic({ root: '../desktop/dist', path: '/index.html' }));
 
-// One-time DB reset (remove after use)
+// One-time DB reset
 app.delete('/api/v1/admin/reset-all', async (c) => {
-  const { db: database } = await import('./db/index.js');
-  const sqlite = (database as any)._.session?.client;
-  if (!sqlite) return c.json({ error: 'no db' }, 500);
-  sqlite.exec('DELETE FROM social_post_reactions');
-  sqlite.exec('DELETE FROM social_post_comments');
-  sqlite.exec('DELETE FROM social_post_likes');
-  sqlite.exec('DELETE FROM social_posts');
-  sqlite.exec('DELETE FROM chat_messages');
-  sqlite.exec('DELETE FROM notifications');
-  sqlite.exec('DELETE FROM invitations');
-  sqlite.exec('DELETE FROM tracks');
-  sqlite.exec('DELETE FROM versions');
-  sqlite.exec('DELETE FROM project_members');
-  sqlite.exec('DELETE FROM projects');
-  sqlite.exec('DELETE FROM follows');
-  sqlite.exec('DELETE FROM auth_sessions');
-  sqlite.exec('DELETE FROM users');
-  return c.json({ success: true, message: 'All data deleted' });
+  const { client } = await import('./db/index.js');
+  try {
+    await client.executeMultiple(`
+      DELETE FROM social_post_reactions;
+      DELETE FROM social_post_comments;
+      DELETE FROM social_post_likes;
+      DELETE FROM social_posts;
+      DELETE FROM chat_messages;
+      DELETE FROM notifications;
+      DELETE FROM invitations;
+      DELETE FROM tracks;
+      DELETE FROM versions;
+      DELETE FROM project_members;
+      DELETE FROM projects;
+      DELETE FROM follows;
+      DELETE FROM auth_sessions;
+      DELETE FROM users;
+    `);
+    return c.json({ success: true, message: 'All data deleted' });
+  } catch (err) {
+    return c.json({ error: 'Reset failed' }, 500);
+  }
 });
 
 // Public stats endpoint — no auth required
@@ -93,9 +97,9 @@ app.get('/api/v1/stats', async (c) => {
   const { db: database } = await import('./db/index.js');
   const { users, projects, tracks } = await import('./db/schema.js');
   const { sql } = await import('drizzle-orm');
-  const [userCount] = database.select({ count: sql<number>`count(*)` }).from(users).all();
-  const [projectCount] = database.select({ count: sql<number>`count(*)` }).from(projects).all();
-  const [trackCount] = database.select({ count: sql<number>`count(*)` }).from(tracks).all();
+  const [userCount] = await database.select({ count: sql<number>`count(*)` }).from(users).all();
+  const [projectCount] = await database.select({ count: sql<number>`count(*)` }).from(projects).all();
+  const [trackCount] = await database.select({ count: sql<number>`count(*)` }).from(tracks).all();
   return c.json({
     users: userCount.count,
     projects: projectCount.count,

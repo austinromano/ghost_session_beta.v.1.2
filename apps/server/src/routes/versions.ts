@@ -18,7 +18,7 @@ const createVersionSchema = z.object({
 
 versionRoutes.get('/', async (c) => {
   const projectId = c.req.param('id');
-  const result = db.select({
+  const result = await db.select({
     id: versions.id,
     projectId: versions.projectId,
     versionNumber: versions.versionNumber,
@@ -42,21 +42,21 @@ versionRoutes.post('/', async (c) => {
   const projectId = c.req.param('id');
   const body = createVersionSchema.parse(await c.req.json());
 
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0 || membership[0].role === 'viewer') {
     throw new HTTPException(403, { message: 'No edit permission' });
   }
 
-  const existing = db.select().from(versions)
+  const existing = await db.select().from(versions)
     .where(eq(versions.projectId, projectId))
     .orderBy(desc(versions.versionNumber))
     .limit(1).all();
   const nextVersion = existing.length > 0 ? existing[0].versionNumber + 1 : 1;
 
-  const projectFiles = db.select().from(files).where(eq(files.projectId, projectId)).all();
-  const projectTracks = db.select().from(tracks).where(eq(tracks.projectId, projectId)).all();
+  const projectFiles = await db.select().from(files).where(eq(files.projectId, projectId)).all();
+  const projectTracks = await db.select().from(tracks).where(eq(tracks.projectId, projectId)).all();
 
   const manifest = projectFiles.map((f) => {
     const track = projectTracks.find((t) => t.fileId === f.id);
@@ -64,19 +64,19 @@ versionRoutes.post('/', async (c) => {
   });
 
   const id = crypto.randomUUID();
-  db.insert(versions).values({
+  await db.insert(versions).values({
     id, projectId, versionNumber: nextVersion, name: body.name,
     description: body.description, createdBy: user.id,
     fileManifestJson: manifest, createdAt: new Date().toISOString(),
   }).run();
 
-  const [version] = db.select().from(versions).where(eq(versions.id, id)).all();
+  const [version] = await db.select().from(versions).where(eq(versions.id, id)).all();
   return c.json({ success: true, data: version }, 201);
 });
 
 versionRoutes.get('/:versionId', async (c) => {
   const versionId = c.req.param('versionId');
-  const result = db.select({
+  const result = await db.select({
     id: versions.id, projectId: versions.projectId,
     versionNumber: versions.versionNumber, name: versions.name,
     description: versions.description, createdBy: versions.createdBy,
@@ -96,16 +96,14 @@ versionRoutes.post('/:versionId/revert', async (c) => {
   const projectId = c.req.param('id');
   const versionId = c.req.param('versionId');
 
-  // Check edit permission
-  const membership = db.select().from(projectMembers)
+  const membership = await db.select().from(projectMembers)
     .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)))
     .limit(1).all();
   if (membership.length === 0 || membership[0].role === 'viewer') {
     throw new HTTPException(403, { message: 'No edit permission' });
   }
 
-  // Get the version with snapshot
-  const [version] = db.select().from(versions).where(eq(versions.id, versionId)).limit(1).all();
+  const [version] = await db.select().from(versions).where(eq(versions.id, versionId)).limit(1).all();
   if (!version) throw new HTTPException(404, { message: 'Version not found' });
 
   const snapshot = version.snapshotJson as any;
@@ -114,7 +112,7 @@ versionRoutes.post('/:versionId/revert', async (c) => {
   }
 
   // Restore project settings
-  db.update(projects).set({
+  await db.update(projects).set({
     name: snapshot.name,
     description: snapshot.description,
     tempo: snapshot.tempo,
@@ -125,15 +123,14 @@ versionRoutes.post('/:versionId/revert', async (c) => {
   }).where(eq(projects.id, projectId)).run();
 
   // Delete all current tracks
-  db.delete(tracks).where(eq(tracks.projectId, projectId)).run();
+  await db.delete(tracks).where(eq(tracks.projectId, projectId)).run();
 
   // Restore file records from snapshot (re-insert any that were deleted)
   if (snapshot.files) {
     for (const f of snapshot.files) {
-      // Only re-insert if the file record no longer exists
-      const [existing] = db.select().from(files).where(eq(files.id, f.id)).limit(1).all();
+      const [existing] = await db.select().from(files).where(eq(files.id, f.id)).limit(1).all();
       if (!existing) {
-        db.insert(files).values({
+        await db.insert(files).values({
           id: f.id,
           projectId: f.projectId || projectId,
           uploadedBy: f.uploadedBy,
@@ -149,7 +146,7 @@ versionRoutes.post('/:versionId/revert', async (c) => {
 
   // Restore tracks from snapshot
   for (const t of snapshot.tracks) {
-    db.insert(tracks).values({
+    await db.insert(tracks).values({
       id: t.id,
       projectId,
       name: t.name,
@@ -168,7 +165,7 @@ versionRoutes.post('/:versionId/revert', async (c) => {
     }).run();
   }
 
-  postActivityComment(projectId, user.id, `⏪ reverted project to version ${version.versionNumber}: ${version.name}`);
+  await postActivityComment(projectId, user.id, `⏪ reverted project to version ${version.versionNumber}: ${version.name}`);
 
   return c.json({ success: true, message: `Reverted to version ${version.versionNumber}` });
 });

@@ -20,15 +20,15 @@ export function generateSessionToken(): string {
   return randomBytes(32).toString('hex');
 }
 
-export function createSession(userId: string): string {
+export async function createSession(userId: string): Promise<string> {
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  db.insert(authSessions).values({ id: token, userId, expiresAt }).run();
+  await db.insert(authSessions).values({ id: token, userId, expiresAt }).run();
   return token;
 }
 
-export function validateSession(token: string) {
-  const results = db
+export async function validateSession(token: string) {
+  const results = await db
     .select()
     .from(authSessions)
     .where(eq(authSessions.id, token))
@@ -38,12 +38,12 @@ export function validateSession(token: string) {
   const session = results[0];
   if (!session || new Date(session.expiresAt) < new Date()) {
     if (session) {
-      db.delete(authSessions).where(eq(authSessions.id, token)).run();
+      await db.delete(authSessions).where(eq(authSessions.id, token)).run();
     }
     return null;
   }
 
-  const userResults = db
+  const userResults = await db
     .select({
       id: users.id,
       email: users.email,
@@ -59,6 +59,6 @@ export function validateSession(token: string) {
   return userResults[0] || null;
 }
 
-export function invalidateSession(token: string) {
-  db.delete(authSessions).where(eq(authSessions.id, token)).run();
+export async function invalidateSession(token: string) {
+  await db.delete(authSessions).where(eq(authSessions.id, token)).run();
 }

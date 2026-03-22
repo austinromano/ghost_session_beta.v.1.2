@@ -6,11 +6,11 @@ import { eq } from 'drizzle-orm';
  * Post an activity comment to a project.
  * Persists to the comments table only — kept separate from chat.
  */
-export function postActivityComment(projectId: string, userId: string, message: string) {
+export async function postActivityComment(projectId: string, userId: string, message: string) {
   try {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    db.insert(comments).values({
+    await db.insert(comments).values({
       id,
       projectId,
       authorId: userId,

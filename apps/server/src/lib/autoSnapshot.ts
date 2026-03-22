@@ -6,17 +6,17 @@ import { eq, desc } from 'drizzle-orm';
  * Auto-create a project snapshot (version) whenever a meaningful change happens.
  * Captures full project state: settings, all tracks with their config, and file manifest.
  */
-export function createAutoSnapshot(projectId: string, userId: string, actionName: string) {
+export async function createAutoSnapshot(projectId: string, userId: string, actionName: string) {
   try {
     // Get current project state
-    const [project] = db.select().from(projects).where(eq(projects.id, projectId)).all();
+    const [project] = await db.select().from(projects).where(eq(projects.id, projectId)).all();
     if (!project) return;
 
     // Get all tracks
-    const projectTracks = db.select().from(tracks).where(eq(tracks.projectId, projectId)).orderBy(tracks.position).all();
+    const projectTracks = await db.select().from(tracks).where(eq(tracks.projectId, projectId)).orderBy(tracks.position).all();
 
     // Get all files for manifest
-    const projectFiles = db.select().from(files).where(eq(files.projectId, projectId)).all();
+    const projectFiles = await db.select().from(files).where(eq(files.projectId, projectId)).all();
 
     // Build file manifest
     const manifest = projectFiles.map((f) => {
@@ -66,7 +66,7 @@ export function createAutoSnapshot(projectId: string, userId: string, actionName
     };
 
     // Get next version number
-    const existing = db.select().from(versions)
+    const existing = await db.select().from(versions)
       .where(eq(versions.projectId, projectId))
       .orderBy(desc(versions.versionNumber))
       .limit(1).all();
@@ -74,7 +74,7 @@ export function createAutoSnapshot(projectId: string, userId: string, actionName
 
     // Insert version
     const id = crypto.randomUUID();
-    db.insert(versions).values({
+    await db.insert(versions).values({
       id,
       projectId,
       versionNumber: nextVersion,
@@ -87,7 +87,7 @@ export function createAutoSnapshot(projectId: string, userId: string, actionName
     }).run();
 
     // Update project's updatedAt
-    db.update(projects).set({ updatedAt: new Date().toISOString() })
+    await db.update(projects).set({ updatedAt: new Date().toISOString() })
       .where(eq(projects.id, projectId)).run();
   } catch (err) {
     // Don't let snapshot failures break the main operation

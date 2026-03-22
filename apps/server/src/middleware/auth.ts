@@ -18,7 +18,7 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   const token = header?.startsWith('Bearer ') ? header.slice(7) : queryToken!;
-  const user = validateSession(token);
+  const user = await validateSession(token);
   if (!user) {
     throw new HTTPException(401, { message: 'Invalid or expired token' });
   }

@@ -10,7 +10,7 @@ userRoutes.use('*', authMiddleware);
 // List all users (excluding current user) — acts as "friends" for now
 userRoutes.get('/', async (c) => {
   const user = c.get('user') as AuthUser;
-  const result = db.select({
+  const result = await db.select({
     id: users.id,
     displayName: users.displayName,
     email: users.email,
