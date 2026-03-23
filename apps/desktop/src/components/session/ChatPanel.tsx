@@ -416,22 +416,14 @@ export default function ChatPanel() {
           const reversed = [...chatMessages].reverse();
           return reversed.map((msg, i) => {
             const origIndex = chatMessages.length - 1 - i;
-            const prevMsg = reversed[i - 1];
-            const sameUser = prevMsg && prevMsg.userId === msg.userId;
             return (
-            <div key={origIndex} className={`group hover:bg-ghost-surface-hover/20 -mx-3 px-3 rounded transition-colors relative ${sameUser ? 'py-[1px]' : 'pt-2.5 pb-[1px]'}`}>
-              {!sameUser ? (
-                <p className="text-[14px] leading-[1.375]">
-                  <span className="font-medium" style={{ color: msg.colour }}>{msg.displayName}</span>
-                  <span className="text-ghost-text-secondary ml-1.5">{msg.text}</span>
-                </p>
-              ) : (
-                <p className="text-[14px] leading-[1.375] text-ghost-text-secondary">{msg.text}</p>
-              )}
+            <div key={origIndex} className="group hover:bg-white/[0.03] -mx-3 px-3 py-1.5 rounded transition-colors relative">
+              <p className="text-[11px] font-semibold mb-0.5" style={{ color: msg.colour }}>{msg.displayName}</p>
+              <p className="text-[13px] leading-[1.4] text-ghost-text-secondary">{msg.text}</p>
               {msg.userId === userId && (
                 <button
                   onClick={() => deleteMessage(origIndex)}
-                  className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-ghost-text-muted hover:text-ghost-error-red hover:bg-ghost-error-red/10 transition-all"
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-ghost-text-muted hover:text-ghost-error-red hover:bg-ghost-error-red/10 transition-all"
                   title="Delete message"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -877,7 +877,7 @@ function Waveform({
       <canvas ref={canvasRef} style={{ display: 'block' }} />
       {showLine && (
         <div
-          className="absolute top-0 bottom-0 w-px bg-white pointer-events-none"
+          className="absolute top-0 bottom-0 w-[2px] bg-white pointer-events-none shadow-[0_0_6px_rgba(255,255,255,0.6)]"
           style={{ left: `${playheadPct}%` }}
         />
       )}
@@ -954,17 +954,19 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
         transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       />
       <div className={`h-[95px] relative overflow-hidden rounded-xl transition-colors ${dragOver ? 'bg-ghost-green/[0.04]' : 'bg-[#0A0412]'}`}>
+        {/* Gloss overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)' }} />
         <div className="absolute inset-0 opacity-[0.15] pointer-events-none">
           <Waveform seed="fullmix-demo-placeholder" height={95} />
         </div>
-        <div className="absolute inset-0 flex items-center justify-center gap-3 px-5">
+        <div className="absolute inset-0 flex items-center gap-3 px-5">
           {uploading ? (
             <span className="text-[13px] text-ghost-green animate-pulse">{status}</span>
           ) : status ? (
             <span className="text-[13px] text-ghost-green">{status}</span>
           ) : (
             <>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#00FFC8' : '#ffffff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#00FFC8' : '#ffffff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
@@ -973,7 +975,7 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
               <div className="flex-1" />
               <button
                 onClick={handleBrowse}
-                className="flex items-center justify-center gap-1.5 w-[100px] h-9 text-[13px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
+                className="flex items-center justify-center gap-1.5 w-[110px] h-10 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1032,11 +1034,16 @@ function StemRow({
     return () => clearInterval(id);
   }, [fileId, ready]);
 
+  const startTimeRef = useRef(0);
+  const animFrameRef = useRef<number | null>(null);
+
   const handlePlay = () => {
     if (isPlaying && sourceRef.current) {
       try { sourceRef.current.stop(); } catch {}
       sourceRef.current = null;
       setIsPlaying(false);
+      useAudioStore.setState({ soloPlayingTrackId: null, soloCurrentTime: 0, soloDuration: 0 });
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       return;
     }
     const buffer = fileId ? audioBufferCache.get(fileId) : null;
@@ -1047,10 +1054,26 @@ function StemRow({
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    source.onended = () => { setIsPlaying(false); sourceRef.current = null; };
+    startTimeRef.current = ctx.currentTime;
+    source.onended = () => {
+      setIsPlaying(false);
+      sourceRef.current = null;
+      useAudioStore.setState({ soloPlayingTrackId: null, soloCurrentTime: 0, soloDuration: 0 });
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
     source.start(0);
     sourceRef.current = source;
     setIsPlaying(true);
+    useAudioStore.setState({ soloPlayingTrackId: trackId, soloDuration: buffer.duration });
+
+    // Update playhead position
+    const updatePlayhead = () => {
+      if (!sourceRef.current) return;
+      const elapsed = ctx.currentTime - startTimeRef.current;
+      useAudioStore.setState({ soloCurrentTime: elapsed });
+      animFrameRef.current = requestAnimationFrame(updatePlayhead);
+    };
+    updatePlayhead();
   };
 
   const handleDownload = () => {
@@ -1082,11 +1105,11 @@ function StemRow({
     <div
       draggable={!!fileId}
       onDragStart={handleDragStart}
-      className={`group flex items-center bg-ghost-surface border border-ghost-border rounded-lg overflow-hidden h-[72px] ${fileId ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className={`group flex items-center bg-ghost-surface border border-ghost-border rounded-lg overflow-hidden h-[95px] ${fileId ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       {/* Waveform full width with overlay controls */}
       <div className="flex-1 h-full overflow-hidden bg-ghost-bg relative">
-        <Waveform seed={name + type} height={72} fileId={fileId} projectId={projectId} showPlayhead trackId={trackId} />
+        <Waveform seed={name + type} height={95} fileId={fileId} projectId={projectId} showPlayhead trackId={trackId} />
         {/* Play button overlay */}
         <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
           <motion.button
@@ -1418,7 +1441,7 @@ function SamplePackContentView({
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                     <input
-                      className="text-[15px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-2 py-1 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
+                      className="text-[15px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-2 py-0 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
                       value={projectName}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1632,7 +1655,7 @@ function SamplePackContentView({
             <div className="absolute inset-0 opacity-10 pointer-events-none">
               <Waveform seed="samplepack-demo-placeholder" height={72} />
             </div>
-            <div className="absolute inset-0 flex items-center justify-center gap-3 px-5">
+            <div className="absolute inset-0 flex items-center gap-3 px-5">
               {packUploading ? (
                 <span className="text-[13px] text-ghost-green animate-pulse">{packStatus}</span>
               ) : packStatus ? (
@@ -1753,7 +1776,7 @@ function DropZone({ projectId, onFilesAdded }: { projectId: string; onFilesAdded
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
           <Waveform seed="stems-demo-placeholder" height={68} />
         </div>
-        <div className="absolute inset-0 flex items-center justify-center gap-3 px-5">
+        <div className="absolute inset-0 flex items-center gap-3 px-5">
           {uploading ? (
             <span className="text-[13px] text-ghost-green animate-pulse">{status}</span>
           ) : status ? (
@@ -1769,7 +1792,7 @@ function DropZone({ projectId, onFilesAdded }: { projectId: string; onFilesAdded
               <div className="flex-1" />
               <button
                 onClick={handleBrowse}
-                className="flex items-center justify-center gap-1.5 w-[100px] h-9 text-[13px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
+                className="flex items-center justify-center gap-1.5 w-[110px] h-10 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -2355,7 +2378,7 @@ export default function PluginLayout() {
 
   const handleCreatePack = async () => {
     try {
-      const pack = await api.createSamplePack({ name: 'New Pack' });
+      const pack = await api.createSamplePack({ name: 'Untitled' });
       await fetchSamplePacks();
       setSelectedPackId(pack.id);
       setSelectedProjectId(null);
@@ -2613,16 +2636,77 @@ export default function PluginLayout() {
           {selectedProjectId && currentProject ? (
             <>
               <div className="flex-1 flex flex-col min-w-0 glass glass-glow rounded-2xl overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-4 pt-2 pb-2">
+              <div className="flex-1 overflow-y-auto p-4">
                 {shareStatus && <div className="mb-3 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-[13px] text-purple-300 font-medium text-center">{shareStatus}</div>}
+
+                {/* Video grid — Zoom style */}
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {Array.from({ length: 4 }).map((_, i) => {
+                    const member = members[i];
+                    const isMe = member && member.userId === user?.id;
+                    return (
+                      <div key={i} className="relative aspect-video rounded-xl overflow-hidden glass-subtle group/video">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {member ? (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <Avatar name={member.displayName || '?'} src={member.avatarUrl} size="lg" />
+                              <span className="text-[11px] text-white/50 font-medium">{member.displayName}</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/15">
+                                <path d="M23 7l-7 5 7 5V7z" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                              </svg>
+                              <span className="text-[10px] text-white/20">Waiting...</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* Camera & Mic controls — show on hover for your own box */}
+                        {isMe && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 opacity-0 group-hover/video:opacity-100 transition-opacity">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="w-8 h-8 rounded-full bg-purple-600 text-white hover:bg-purple-500 flex items-center justify-center transition-colors"
+                              title="Toggle Camera"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M23 7l-7 5 7 5V7z" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                              </svg>
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="w-8 h-8 rounded-full bg-purple-600 text-white hover:bg-purple-500 flex items-center justify-center transition-colors"
+                              title="Toggle Mic"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                <line x1="12" y1="19" x2="12" y2="23" />
+                                <line x1="8" y1="23" x2="16" y2="23" />
+                              </svg>
+                            </motion.button>
+                          </div>
+                        )}
+                        {member && (
+                          <span className="absolute bottom-1.5 left-2 w-2 h-2 rounded-full bg-ghost-online-green" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 {/* Project info bar */}
                 <div className="mb-4">
-                  <div className="flex items-center gap-3 glass-subtle px-5 py-1 min-w-0">
+                  <div className="flex items-center gap-3 glass-subtle pl-6 pr-3 min-w-0 h-[36px]">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00FFC8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                     <input
-                      className="text-[15px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-2 py-1 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
+                      className="text-[15px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-2 py-0 rounded-md transition-colors min-w-[60px] flex-1 cursor-text"
                       value={projectName}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -2646,7 +2730,7 @@ export default function PluginLayout() {
                         type="text"
                         inputMode="numeric"
                         maxLength={3}
-                        className="w-12 text-[14px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-1.5 py-1 rounded-md transition-colors text-center cursor-text"
+                        className="w-12 text-[14px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-1.5 py-0 rounded-md transition-colors text-center cursor-text"
                         style={{ fontFamily: "'Consolas', monospace" }}
                         value={projectBpm}
                         placeholder=""
@@ -2670,7 +2754,7 @@ export default function PluginLayout() {
                       <input
                         type="text"
                         maxLength={3}
-                        className="w-12 text-[14px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-1.5 py-1 rounded-md transition-colors text-center cursor-text"
+                        className="w-12 text-[14px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-1.5 py-0 rounded-md transition-colors text-center cursor-text"
                         style={{ fontFamily: "'Consolas', monospace" }}
                         value={projectKey}
                         placeholder=""
@@ -2697,8 +2781,8 @@ export default function PluginLayout() {
                       </>
                     )}
                     <div className="relative z-20" ref={projectMenuRef}>
-                      <button onClick={(e) => { e.stopPropagation(); setShowProjectMenu(!showProjectMenu); }} className="w-8 h-8 flex items-center justify-center rounded-md text-ghost-text-muted hover:text-white hover:bg-white/[0.1] transition-colors cursor-pointer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                      <button onClick={(e) => { e.stopPropagation(); setShowProjectMenu(!showProjectMenu); }} className="w-9 h-9 flex items-center justify-center rounded-md text-ghost-text-muted hover:text-white hover:bg-white/[0.1] transition-colors cursor-pointer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.5" /><circle cx="12" cy="12" r="2.5" /><circle cx="12" cy="19" r="2.5" /></svg>
                       </button>
                       {showProjectMenu && projectMenuRef.current && createPortal(
                         <div data-project-menu-portal className="fixed w-40 glass rounded-lg shadow-popup animate-popup border border-white/10 py-1" style={{ zIndex: 9999, top: (projectMenuRef.current.getBoundingClientRect().bottom || 0) + 4, left: (projectMenuRef.current.getBoundingClientRect().right || 0) - 160 }}>
@@ -2783,8 +2867,8 @@ export default function PluginLayout() {
                   <div className="flex items-center -space-x-2">
                     {[...members].sort((a: any, b: any) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : 0)).map((m: any) => (
                       <div key={m.userId} className="relative group cursor-pointer transition-transform hover:scale-105 hover:z-10" title={m.displayName} style={{ border: '2.5px solid #0A0A0F', borderRadius: '50%' }}>
-                        <Avatar name={m.displayName || '?'} src={m.avatarUrl} size="md" />
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-ghost-online-green" style={{ border: '2px solid #0A0A0F' }} />
+                        <Avatar name={m.displayName || '?'} src={m.avatarUrl} size="lg" />
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-ghost-online-green" style={{ border: '2px solid #0A0A0F' }} />
                       </div>
                     ))}
                   </div>
@@ -2792,20 +2876,20 @@ export default function PluginLayout() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {[...members].filter((m: any) => m.role === 'owner').map((m: any) => (
                         <span key={m.userId} className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-semibold text-ghost-text-primary">{m.displayName}</span>
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-ghost-host-gold bg-ghost-host-gold/10 px-1.5 py-0.5 rounded">host</span>
+                          <span className="text-[15px] font-semibold text-ghost-text-primary">{m.displayName}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-ghost-host-gold bg-ghost-host-gold/10 px-1.5 py-0.5 rounded">host</span>
                         </span>
                       ))}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-ghost-online-green" />
-                      <span className="text-[12px] text-ghost-text-muted">{members.length} collaborator{members.length !== 1 ? 's' : ''} online</span>
+                      <span className="w-2 h-2 rounded-full bg-ghost-online-green" />
+                      <span className="text-[13px] text-ghost-text-muted">{members.length} collaborator{members.length !== 1 ? 's' : ''} online</span>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setShowInvite(!showInvite)}
-                    className="flex items-center justify-center gap-1.5 w-[100px] h-9 text-[13px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
+                    className="flex items-center justify-center gap-1.5 w-[110px] h-10 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -2819,24 +2903,34 @@ export default function PluginLayout() {
                 </div>
                 </div>
 
-                {/* Always show one drop zone at top */}
-                <FullMixDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} isBeat={isBeatView} />
-
-                {/* Uploaded tracks */}
-                <div className="space-y-2 mt-2">
-                  {currentProject.tracks.map((track: any) => (
-                    <StemRow
-                      key={track.id}
-                      trackId={track.id}
-                      name={track.name || track.fileName || 'Track'}
-                      type={track.type || 'audio'}
-                      fileId={track.fileId}
-                      projectId={selectedProjectId!}
-                      createdAt={track.createdAt}
-                      onDelete={() => deleteTrack(selectedProjectId!, track.id)}
-                      onRename={(newName) => updateTrack(selectedProjectId!, track.id, { name: newName })}
-                    />
-                  ))}
+                {/* Track slots — 4 default, tracks replace drop zones from top */}
+                <div className="space-y-2">
+                  {Array.from({ length: Math.max(4, currentProject.tracks.length + 1) }).map((_, i) => {
+                    const track = currentProject.tracks[i];
+                    if (track) {
+                      return (
+                        <StemRow
+                          key={track.id}
+                          trackId={track.id}
+                          name={track.name || track.fileName || 'Track'}
+                          type={track.type || 'audio'}
+                          fileId={track.fileId}
+                          projectId={selectedProjectId!}
+                          createdAt={track.createdAt}
+                          onDelete={() => deleteTrack(selectedProjectId!, track.id)}
+                          onRename={(newName) => updateTrack(selectedProjectId!, track.id, { name: newName })}
+                        />
+                      );
+                    }
+                    if (i < Math.max(4, currentProject.tracks.length + 1)) {
+                      return (
+                        <div key={`drop-${i}`}>
+                          <FullMixDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} isBeat={isBeatView} />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
               </div>
 
