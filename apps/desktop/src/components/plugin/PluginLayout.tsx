@@ -945,9 +945,9 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
         dragOver ? 'bg-ghost-green/[0.04] border border-ghost-green/30 shadow-glow-green' : 'glass-subtle'
       }`}
     >
-      <div className={`h-[72px] relative overflow-hidden rounded-xl transition-colors ${dragOver ? 'bg-ghost-green/[0.03]' : 'bg-black/20'}`}>
-        <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
-          <Waveform seed="fullmix-demo-placeholder" height={68} />
+      <div className={`h-[72px] relative overflow-hidden rounded-xl transition-colors ${dragOver ? 'bg-ghost-green/[0.04]' : 'bg-black/20'}`}>
+        <div className="absolute inset-0 opacity-[0.15] pointer-events-none">
+          <Waveform seed="fullmix-demo-placeholder" height={72} />
         </div>
         <div className="absolute inset-0 flex items-center justify-center gap-3 px-5">
           {uploading ? (
@@ -965,7 +965,7 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat }: { projectId: strin
               <div className="flex-1" />
               <button
                 onClick={handleBrowse}
-                className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-500/15 border border-purple-500/25 rounded-lg text-purple-300 hover:bg-purple-500/25 hover:border-purple-500/35 hover:text-purple-200 transition-all shrink-0"
+                className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1076,88 +1076,91 @@ function StemRow({
       onDragStart={handleDragStart}
       className={`flex items-center bg-ghost-surface border border-ghost-border rounded-lg overflow-hidden h-[72px] ${fileId ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
-      {/* Play button */}
-      <div className="w-14 shrink-0 flex items-center justify-center border-r border-ghost-border">
-        <button
-          onClick={handlePlay}
-          className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${
-            isPlaying
-              ? 'border-ghost-green text-ghost-green bg-ghost-green/10'
-              : ready
-                ? 'border-ghost-border text-ghost-text-secondary hover:text-ghost-green hover:border-ghost-green'
-                : 'border-ghost-border text-ghost-text-muted opacity-40'
-          }`}
-          disabled={!ready}
-        >
-          {isPlaying ? (
-            <svg width="10" height="10" viewBox="0 0 12 14" fill="currentColor">
-              <rect x="0" y="0" width="4" height="14" rx="1" />
-              <rect x="8" y="0" width="4" height="14" rx="1" />
-            </svg>
-          ) : (
-            <svg width="8" height="10" viewBox="0 0 10 12" fill="currentColor"><polygon points="0,0 10,6 0,12" /></svg>
-          )}
-        </button>
-      </div>
-
-      {/* Name + type */}
-      <div className="w-28 shrink-0 px-3 overflow-hidden">
-        {editing ? (
-          <input
-            autoFocus
-            className="text-xs font-semibold text-ghost-text-primary bg-ghost-bg border border-ghost-green/50 rounded px-1 py-0.5 outline-none focus:border-ghost-green w-full"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onBlur={() => {
-              if (editName.trim() && editName !== name) onRename(editName.trim());
-              setEditing(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-              if (e.key === 'Escape') { setEditName(name); setEditing(false); }
-            }}
-          />
-        ) : (
-          <p
-            className="text-xs font-semibold text-ghost-text-primary truncate cursor-pointer hover:text-ghost-green transition-colors"
-            onClick={() => { setEditName(name); setEditing(true); }}
-            title="Click to rename"
-          >
-            {name}
-          </p>
-        )}
-        <p className="text-[10px] text-ghost-text-muted uppercase mt-0.5">{type === 'audio' ? 'stem' : type === 'fullmix' ? 'mix' : type}</p>
-        {createdAt && (
-          <p className="text-[11px] text-ghost-green font-medium mt-0.5" title={new Date(createdAt).toLocaleString()}>
-            {formatDate(createdAt)}
-          </p>
-        )}
-      </div>
-
-      {/* Waveform */}
-      <div className="flex-1 h-full overflow-hidden bg-ghost-bg">
+      {/* Waveform full width with overlay controls */}
+      <div className="flex-1 h-full overflow-hidden bg-ghost-bg relative">
         <Waveform seed={name + type} height={72} fileId={fileId} projectId={projectId} showPlayhead trackId={trackId} />
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-1 px-3 shrink-0">
-        <button
-          onClick={handleDownload}
-          title="Download"
-          className="w-8 h-8 rounded text-xs font-bold text-ghost-text-muted hover:text-ghost-green hover:bg-ghost-green/10 transition-colors flex items-center justify-center"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </button>
-        <button
-          onClick={onDelete}
-          className="w-8 h-8 rounded text-xs font-bold text-ghost-text-muted hover:text-ghost-error-red hover:bg-ghost-error-red/10 transition-colors"
-        >
-          X
-        </button>
+        {/* Play button overlay */}
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10">
+          <button
+            onClick={handlePlay}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+              isPlaying
+                ? 'bg-ghost-green/20 text-ghost-green'
+                : ready
+                  ? 'bg-black/40 text-white hover:text-ghost-green hover:bg-black/60'
+                  : 'bg-black/30 text-ghost-text-muted opacity-40'
+            }`}
+            disabled={!ready}
+          >
+            {isPlaying ? (
+              <svg width="10" height="10" viewBox="0 0 12 14" fill="currentColor">
+                <rect x="0" y="0" width="4" height="14" rx="1" />
+                <rect x="8" y="0" width="4" height="14" rx="1" />
+              </svg>
+            ) : (
+              <svg width="8" height="10" viewBox="0 0 10 12" fill="currentColor"><polygon points="0,0 10,6 0,12" /></svg>
+            )}
+          </button>
+        </div>
+        {/* Name overlay */}
+        <div className="absolute left-12 top-1 z-10">
+          {editing ? (
+            <input
+              autoFocus
+              className="text-xs font-semibold text-white bg-black/50 border border-ghost-green/50 rounded px-1 py-0.5 outline-none focus:border-ghost-green"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={() => {
+                if (editName.trim() && editName !== name) onRename(editName.trim());
+                setEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') { setEditName(name); setEditing(false); }
+              }}
+            />
+          ) : (
+            <p
+              className="text-[11px] font-semibold text-white/90 truncate cursor-pointer hover:text-ghost-green transition-colors drop-shadow-md"
+              onClick={() => { setEditName(name); setEditing(true); }}
+              title="Click to rename"
+            >
+              {name}
+            </p>
+          )}
+          <p className="text-[9px] text-white/50 uppercase">{type === 'audio' ? 'stem' : type === 'fullmix' ? 'mix' : type}</p>
+        </div>
+        {/* Time overlay */}
+        {createdAt && (
+          <div className="absolute left-12 bottom-1 z-10">
+            <p className="text-[10px] text-ghost-green font-medium drop-shadow-md" title={new Date(createdAt).toLocaleString()}>
+              {formatDate(createdAt)}
+            </p>
+          </div>
+        )}
+        {/* Action buttons overlay */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2">
+          <button
+            onClick={handleDownload}
+            title="Download"
+            className="w-9 h-9 rounded-lg bg-black/50 text-white/80 hover:text-ghost-green hover:bg-black/70 transition-colors flex items-center justify-center backdrop-blur-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+          <button
+            onClick={onDelete}
+            className="w-9 h-9 rounded-lg bg-black/50 text-white/80 hover:text-ghost-error-red hover:bg-black/70 transition-colors flex items-center justify-center backdrop-blur-sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1747,7 +1750,7 @@ function DropZone({ projectId, onFilesAdded }: { projectId: string; onFilesAdded
               <div className="flex-1" />
               <button
                 onClick={handleBrowse}
-                className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-500/15 border border-purple-500/25 rounded-lg text-purple-300 hover:bg-purple-500/25 hover:border-purple-500/35 hover:text-purple-200 transition-all shrink-0"
+                className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -2718,7 +2721,7 @@ export default function PluginLayout() {
 
                   <button
                     onClick={() => setShowInvite(!showInvite)}
-                    className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-500/15 border border-purple-500/25 rounded-lg text-purple-300 hover:bg-purple-500/25 hover:border-purple-500/35 hover:text-purple-200 transition-all shrink-0"
+                    className="flex items-center justify-center gap-1.5 w-[110px] h-9 text-[14px] font-semibold bg-purple-600 border border-purple-500 rounded-lg text-white hover:bg-purple-500 transition-all shrink-0"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -2734,7 +2737,7 @@ export default function PluginLayout() {
 
                 {/* Version History panel */}
                 {showVersionHistory && (
-                  <div className="mb-4 bg-ghost-surface/50 rounded-xl border border-white/[0.06] overflow-hidden">
+                  <div className="mb-4 glass-subtle overflow-hidden">
                     <div className="px-4 py-2 border-b border-ghost-border/30 flex items-center justify-between">
                       <span className="text-[13px] font-bold text-ghost-text-secondary uppercase tracking-wider">Version History</span>
                       <span className="text-[11px] text-ghost-text-muted">{versions.length} snapshot{versions.length !== 1 ? 's' : ''}</span>
@@ -2747,8 +2750,10 @@ export default function PluginLayout() {
                       ) : (
                         versions.map((v: any) => (
                           <div key={v.id} className="flex items-center gap-3 px-4 py-2 border-b border-ghost-border/20 hover:bg-ghost-surface-light/30 transition-colors group">
-                            {/* Version dot */}
-                            <div className="w-2.5 h-2.5 rounded-full border-2 border-ghost-purple bg-ghost-bg shrink-0" />
+                            {/* User avatar */}
+                            <div className="shrink-0">
+                              <Avatar name={v.createdByName || 'Unknown'} src={members.find((m: any) => m.userId === v.createdBy)?.avatarUrl || (v.createdBy === user?.id ? user?.avatarUrl : null)} size="sm" />
+                            </div>
 
                             <div className="flex-1 min-w-0">
                               <p className="text-[13px] text-ghost-text-primary font-medium truncate">{v.name}</p>
@@ -2782,24 +2787,34 @@ export default function PluginLayout() {
                   </div>
                 )}
 
-                {/* Full Mix drop zone */}
-                <FullMixDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} isBeat={isBeatView} />
-
-                {/* All tracks */}
-                <div className="space-y-2 mt-2">
-                  {currentProject.tracks.map((t: any) => (
-                    <StemRow
-                      key={t.id}
-                      trackId={t.id}
-                      name={t.name || t.fileName || 'Track'}
-                      type={t.type || 'audio'}
-                      fileId={t.fileId}
-                      projectId={selectedProjectId!}
-                      createdAt={t.createdAt}
-                      onDelete={() => deleteTrack(selectedProjectId!, t.id)}
-                      onRename={(newName) => updateTrack(selectedProjectId!, t.id, { name: newName })}
-                    />
-                  ))}
+                {/* Track slots — uploaded tracks fill from top, empty slots show drop zones */}
+                <div className="space-y-2">
+                  {Array.from({ length: Math.max(4, currentProject.tracks.length + 1) }).map((_, i) => {
+                    const track = currentProject.tracks[i];
+                    if (track) {
+                      return (
+                        <StemRow
+                          key={track.id}
+                          trackId={track.id}
+                          name={track.name || track.fileName || 'Track'}
+                          type={track.type || 'audio'}
+                          fileId={track.fileId}
+                          projectId={selectedProjectId!}
+                          createdAt={track.createdAt}
+                          onDelete={() => deleteTrack(selectedProjectId!, track.id)}
+                          onRename={(newName) => updateTrack(selectedProjectId!, track.id, { name: newName })}
+                        />
+                      );
+                    }
+                    if (i < 4) {
+                      return (
+                        <div key={`drop-${i}`}>
+                          <FullMixDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)} isBeat={isBeatView} />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
               </div>
 
