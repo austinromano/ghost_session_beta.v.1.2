@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { api } from '../../lib/api';
@@ -55,6 +55,13 @@ function ProjectListSidebar({
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [packsOpen, setPacksOpen] = useState(true);
   const [beatsOpen, setBeatsOpen] = useState(true);
+  const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ghost_sidebar_order');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ['collabs', 'projects', 'favorites', 'samples'];
+  });
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('ghost_favorites') || '[]')); } catch { return new Set(); }
   });
@@ -95,12 +102,14 @@ function ProjectListSidebar({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {/* Projects dropdown */}
+      <Reorder.Group axis="y" values={sectionOrder} onReorder={(newOrder) => { setSectionOrder(newOrder); localStorage.setItem('ghost_sidebar_order', JSON.stringify(newOrder)); }} className="flex-1 overflow-y-auto min-h-0" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {sectionOrder.map((sectionKey) => {
+          if (sectionKey === 'collabs') return (
+        <Reorder.Item key="collabs" value="collabs" style={{ listStyle: 'none' }} className="cursor-grab active:cursor-grabbing" whileDrag={{ scale: 1.02, zIndex: 50, boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
         <div>
           <button
             onClick={() => setProjectsOpen((v) => !v)}
-            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors"
+            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors cursor-grab active:cursor-grabbing"
           >
             <span className="flex items-center gap-1.5 flex-1">
               <span className="text-[13px] font-bold text-white/80 uppercase tracking-[0.08em]">
@@ -146,10 +155,13 @@ function ProjectListSidebar({
             </div>
           )}
         </div>
-
+        </Reorder.Item>
+          );
+          if (sectionKey === 'projects') return (
+        <Reorder.Item key="projects" value="projects" style={{ listStyle: 'none' }} className="cursor-grab active:cursor-grabbing" whileDrag={{ scale: 1.02, zIndex: 50, boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
         {/* My Beats dropdown */}
         <div>
-          <div className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors">
+          <div className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors cursor-grab active:cursor-grabbing">
             <button
               onClick={() => setBeatsOpen((v) => !v)}
               className="flex items-center justify-between flex-1"
@@ -200,12 +212,15 @@ function ProjectListSidebar({
             </div>
           )}
         </div>
-
+        </Reorder.Item>
+          );
+          if (sectionKey === 'favorites') return (
+        <Reorder.Item key="favorites" value="favorites" style={{ listStyle: 'none' }} className="cursor-grab active:cursor-grabbing" whileDrag={{ scale: 1.02, zIndex: 50, boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
         {/* Favorites dropdown */}
         <div>
           <button
             onClick={() => setFavoritesOpen((v) => !v)}
-            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors"
+            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors cursor-grab active:cursor-grabbing"
           >
             <span className="flex items-center gap-1.5 flex-1">
               <span className="text-[13px] font-bold text-white/80 uppercase tracking-[0.08em]">
@@ -262,12 +277,15 @@ function ProjectListSidebar({
             </div>
           )}
         </div>
-
+        </Reorder.Item>
+          );
+          if (sectionKey === 'samples') return (
+        <Reorder.Item key="samples" value="samples" style={{ listStyle: 'none' }} className="cursor-grab active:cursor-grabbing" whileDrag={{ scale: 1.02, zIndex: 50, boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
         {/* Sample Packs dropdown */}
         <div>
           <button
             onClick={() => setPacksOpen((v) => !v)}
-            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors"
+            className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors cursor-grab active:cursor-grabbing"
           >
             <span className="text-[13px] font-bold text-white/80 uppercase tracking-[0.08em]">
               My Samples
@@ -316,9 +334,13 @@ function ProjectListSidebar({
             </div>
           )}
         </div>
+        </Reorder.Item>
+          );
+          return null;
+        })}
 
         {/* Friends */}
-      </div>
+      </Reorder.Group>
     </div>
   );
 }
@@ -340,7 +362,7 @@ function FriendsPanel({ friends }: { friends: { id: string; displayName: string;
     <div className="shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors"
+        className="h-9 px-3 mx-2 mt-1.5 w-[calc(100%-16px)] flex items-center justify-between rounded-lg glass-subtle hover:bg-white/[0.08] transition-colors cursor-grab active:cursor-grabbing"
       >
         <span className="flex items-center gap-1.5 flex-1">
           <span className="text-[13px] font-bold text-white/80 uppercase tracking-[0.08em]">
@@ -2708,6 +2730,92 @@ function SocialFeed({ user, friends }: { user: any; friends: any[] }) {
   );
 }
 
+function PresenceFriendsList({ friends, onlineActivity, selectProject }: { friends: any[]; onlineActivity: Map<string, OnlineUser>; selectProject: (id: string) => void }) {
+  const defaultFriends = [
+    { id: 'demo1', displayName: 'Alex Beats', avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg' },
+    { id: 'demo2', displayName: 'Jay Producer', avatarUrl: 'https://randomuser.me/api/portraits/men/75.jpg' },
+    { id: 'demo3', displayName: 'Kira Wave', avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg' },
+    { id: 'demo4', displayName: 'Rio Sound', avatarUrl: 'https://randomuser.me/api/portraits/men/85.jpg' },
+  ];
+  const sourceFriends = friends.length > 0 ? friends : defaultFriends;
+
+  const [orderedIds, setOrderedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ghost_friend_order');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return sourceFriends.map((f: any) => f.id);
+  });
+
+  // Sync order when friends list changes
+  useEffect(() => {
+    const ids = sourceFriends.map((f: any) => f.id);
+    setOrderedIds(prev => {
+      const existing = prev.filter(id => ids.includes(id));
+      const newIds = ids.filter(id => !prev.includes(id));
+      return [...existing, ...newIds];
+    });
+  }, [sourceFriends.length]);
+
+  const orderedFriends = orderedIds
+    .map(id => sourceFriends.find((f: any) => f.id === id))
+    .filter(Boolean) as any[];
+
+  const handleReorder = (newOrder: string[]) => {
+    setOrderedIds(newOrder);
+    localStorage.setItem('ghost_friend_order', JSON.stringify(newOrder));
+  };
+
+  return (
+    <Reorder.Group axis="y" values={orderedIds} onReorder={handleReorder} className="flex flex-col items-center gap-4" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      {orderedFriends.map((f) => {
+        const activity = onlineActivity.get(f.id);
+        const isOnline = !!activity;
+        const projectName = activity?.currentProjectName;
+        const projectId = activity?.currentProjectId;
+        return (
+          <Reorder.Item key={f.id} value={f.id} className="relative group cursor-grab active:cursor-grabbing" style={{ listStyle: 'none' }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            whileDrag={{ scale: 1.15, zIndex: 50 }}
+          >
+            <div onClick={() => { if (projectId) selectProject(projectId); }}>
+              <div className="rounded-full p-[2px] transition-all overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_12px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3)]"
+                style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
+              >
+                <div className="rounded-full overflow-hidden">
+                  <Avatar name={f.displayName} src={f.avatarUrl} size="md" />
+                </div>
+              </div>
+              {isOnline ? (
+                <motion.span
+                  className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0A0412] bg-ghost-online-green"
+                  animate={{ scale: [1, 1.3, 1], boxShadow: ['0 0 0px rgba(34,197,94,0)', '0 0 8px rgba(34,197,94,0.6)', '0 0 0px rgba(34,197,94,0)'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              ) : (
+                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0A0412]" style={{ background: 'transparent', boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.2)' }} />
+              )}
+            </div>
+            <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+              <div className="px-3 py-1.5 rounded-lg text-[11px]" style={{ background: 'rgba(20,10,35,0.97)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)' }}>
+                <div className="font-semibold text-white">{f.displayName}</div>
+                {projectName ? (
+                  <div className="text-ghost-green mt-0.5">Working on: {projectName}</div>
+                ) : isOnline ? (
+                  <div className="text-white/40 mt-0.5">Online</div>
+                ) : (
+                  <div className="text-white/30 mt-0.5">Offline</div>
+                )}
+              </div>
+            </div>
+          </Reorder.Item>
+        );
+      })}
+    </Reorder.Group>
+  );
+}
+
 export default function PluginLayout() {
   const { user, logout } = useAuthStore();
   const { projects, currentProject, fetchProjects, fetchProject, createProject, updateProject, addTrack, updateTrack, deleteTrack, versions, fetchVersions } = useProjectStore();
@@ -3069,44 +3177,8 @@ export default function PluginLayout() {
           </svg>
         </motion.button>
         <div className="w-6 h-px bg-white/10 mb-3" />
-        {/* Friends list */}
-        <div className="flex flex-col items-center gap-4">
-        {(() => {
-          const displayFriends = friends.length > 0 ? friends : [
-            { id: 'demo1', displayName: 'Alex Beats', avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg' },
-            { id: 'demo2', displayName: 'Jay Producer', avatarUrl: 'https://randomuser.me/api/portraits/men/75.jpg' },
-            { id: 'demo3', displayName: 'Kira Wave', avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg' },
-            { id: 'demo4', displayName: 'Rio Sound', avatarUrl: 'https://randomuser.me/api/portraits/men/85.jpg' },
-          ];
-          return displayFriends.map((f) => {
-            const activity = onlineActivity.get(f.id);
-            const isOnline = !!activity;
-            const projectName = activity?.currentProjectName;
-            const projectId = activity?.currentProjectId;
-            return (
-            <div key={f.id} className="relative group cursor-pointer hover:scale-110 transition-transform"
-              onClick={() => { if (projectId) selectProject(projectId); }}
-            >
-              <div className={`rounded-full transition-all overflow-hidden ${isOnline ? 'group-hover:ring-2 group-hover:ring-ghost-green/40' : ''}`}>
-                <Avatar name={f.displayName} src={f.avatarUrl} size="md" />
-              </div>
-              {isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-ghost-online-green border-2 border-[#0A0412]" />}
-              <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                <div className="px-3 py-1.5 rounded-lg text-[11px]" style={{ background: 'rgba(20,10,35,0.97)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)' }}>
-                  <div className="font-semibold text-white">{f.displayName}</div>
-                  {projectName ? (
-                    <div className="text-ghost-green mt-0.5">Working on: {projectName}</div>
-                  ) : isOnline ? (
-                    <div className="text-white/40 mt-0.5">Online</div>
-                  ) : (
-                    <div className="text-white/30 mt-0.5">Offline</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );});
-        })()}
-        </div>
+        {/* Friends list — drag to reorder */}
+        <PresenceFriendsList friends={friends} onlineActivity={onlineActivity} selectProject={selectProject} />
       </div>
 
       {/* Left sidebar */}

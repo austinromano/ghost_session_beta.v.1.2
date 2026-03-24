@@ -32,7 +32,8 @@ export default function Avatar({ name, src, colour, size = 'md' }: AvatarProps) 
       <img
         src={imgSrc}
         alt={name}
-        className={`${sizeMap[size]} rounded-full object-cover shrink-0`}
+        draggable={false}
+        className={`${sizeMap[size]} rounded-full object-cover shrink-0 select-none`}
       />
     );
   }
