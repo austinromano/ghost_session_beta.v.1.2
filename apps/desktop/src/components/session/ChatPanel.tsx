@@ -480,39 +480,6 @@ export default function ChatPanel() {
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Message..."
           />
-          {/* Screen share icon */}
-          <button
-            onClick={screenOn ? stopScreenShare : startScreenShare}
-            className={`shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded ${screenOn ? 'text-red-500 hover:text-red-400' : 'text-ghost-text-muted hover:text-ghost-text-primary'}`}
-            title={screenOn ? 'Stop screen share' : 'Share screen'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-          </button>
-          {/* Video icon */}
-          <button
-            onClick={videoOn ? stopVideo : startVideo}
-            className={`shrink-0 w-8 h-8 flex items-center justify-center transition-colors rounded ${videoOn ? 'text-red-500 hover:text-red-400' : 'text-ghost-text-muted hover:text-ghost-text-primary'}`}
-            title={videoOn ? 'Stop video' : 'Start video'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {videoOn ? (
-                <>
-                  <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
-                  <polygon points="23 7 16 12 23 17 23 7" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-              ) : (
-                <>
-                  <polygon points="23 7 16 12 23 17 23 7" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </>
-              )}
-            </svg>
-          </button>
           {/* Emoji button */}
           <button
             onClick={() => setShowEmoji((v) => !v)}

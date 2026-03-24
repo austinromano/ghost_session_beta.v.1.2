@@ -47,8 +47,8 @@ export function setupWebSocket(httpServer: HTTPServer) {
     next();
   });
 
-  // Track globally online users
-  const globalOnline = new Map<string, { userId: string; displayName: string }>();
+  // Track globally online users with activity
+  const globalOnline = new Map<string, { userId: string; displayName: string; currentProjectId: string | null; currentProjectName: string | null }>();
 
   function broadcastOnlineUsers() {
     const list = Array.from(globalOnline.values());
@@ -58,11 +58,11 @@ export function setupWebSocket(httpServer: HTTPServer) {
   io.on('connection', (socket) => {
     console.log(`[WS] ${socket.data.displayName} connected`);
 
-    globalOnline.set(socket.data.userId, { userId: socket.data.userId, displayName: socket.data.displayName });
+    globalOnline.set(socket.data.userId, { userId: socket.data.userId, displayName: socket.data.displayName, currentProjectId: null, currentProjectName: null });
     broadcastOnlineUsers();
 
     registerSessionHandlers(io, socket);
-    registerPresenceHandlers(io, socket);
+    registerPresenceHandlers(io, socket, globalOnline, broadcastOnlineUsers);
     registerChatHandlers(io, socket);
     registerWebRTCHandlers(io, socket);
 

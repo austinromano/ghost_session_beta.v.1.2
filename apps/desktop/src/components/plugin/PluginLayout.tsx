@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { api } from '../../lib/api';
-import { onGlobalOnlineUsers } from '../../lib/socket';
+import { onGlobalOnlineUsers, type OnlineUser } from '../../lib/socket';
 import Avatar from '../common/Avatar';
 import ChatPanel from '../session/ChatPanel';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -2747,6 +2747,16 @@ export default function PluginLayout() {
     }, 100);
     return () => clearInterval(interval);
   }, []);
+
+  const [onlineActivity, setOnlineActivity] = useState<Map<string, OnlineUser>>(new Map());
+  useEffect(() => {
+    onGlobalOnlineUsers((users) => {
+      const map = new Map<string, OnlineUser>();
+      users.forEach(u => map.set(u.userId, u));
+      setOnlineActivity(map);
+    });
+  }, []);
+
   const [showNotifs, setShowNotifs] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showFriendSearch, setShowFriendSearch] = useState(false);
@@ -2760,7 +2770,8 @@ export default function PluginLayout() {
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedPack, setSelectedPack] = useState<(SamplePack & { items?: any[] }) | null>(null);
   const fullMixTracks = currentProject?.tracks.filter((t: any) => t.type === 'fullmix') || [];
-  const [editingField, setEditingField] = useState<'name' | 'tempo' | 'key' | 'genre' | null>(null);
+  const [editingField, setEditingField] = useState<'name' | 'tempo' | 'key' | 'genre' | 'timeSig' | null>(null);
+  const [projectTimeSig, setProjectTimeSig] = useState('4/4');
   const [editValue, setEditValue] = useState('');
   const [showProjectMenu, setShowProjectMenu] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
@@ -2817,6 +2828,7 @@ export default function PluginLayout() {
       setProjectName(currentProject.name);
       setProjectBpm(currentProject.tempo ? String(currentProject.tempo) : '');
       setProjectKey(currentProject.key || '');
+      setProjectTimeSig(currentProject.timeSignature || '4/4');
     }
   }, [currentProject?.id, currentProject?.name]);
 
@@ -3041,6 +3053,45 @@ export default function PluginLayout() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden relative p-2 gap-2">
+      {/* Presence dock — far left */}
+      <div className="flex flex-col items-center gap-4 py-2 shrink-0 w-12">
+        {(() => {
+          const displayFriends = friends.length > 0 ? friends : [
+            { id: 'demo1', displayName: 'Alex Beats', avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg' },
+            { id: 'demo2', displayName: 'Jay Producer', avatarUrl: 'https://randomuser.me/api/portraits/men/75.jpg' },
+            { id: 'demo3', displayName: 'Kira Wave', avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg' },
+            { id: 'demo4', displayName: 'Rio Sound', avatarUrl: 'https://randomuser.me/api/portraits/men/85.jpg' },
+          ];
+          return displayFriends.map((f) => {
+            const activity = onlineActivity.get(f.id);
+            const isOnline = !!activity;
+            const projectName = activity?.currentProjectName;
+            const projectId = activity?.currentProjectId;
+            return (
+            <div key={f.id} className="relative group cursor-pointer hover:scale-110 transition-transform"
+              onClick={() => { if (projectId) selectProject(projectId); }}
+            >
+              <div className={`w-10 h-10 rounded-full ring-2 transition-all overflow-hidden ${isOnline ? 'ring-white/[0.08] group-hover:ring-ghost-green/40' : 'ring-white/[0.04] opacity-50'}`}>
+                <Avatar name={f.displayName} src={f.avatarUrl} size="md" />
+              </div>
+              {isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-ghost-online-green border-2 border-[#0A0412]" />}
+              <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                <div className="px-3 py-1.5 rounded-lg text-[11px]" style={{ background: 'rgba(20,10,35,0.97)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)' }}>
+                  <div className="font-semibold text-white">{f.displayName}</div>
+                  {projectName ? (
+                    <div className="text-ghost-green mt-0.5">Working on: {projectName}</div>
+                  ) : isOnline ? (
+                    <div className="text-white/40 mt-0.5">Online</div>
+                  ) : (
+                    <div className="text-white/30 mt-0.5">Offline</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );});
+        })()}
+      </div>
+
       {/* Left sidebar */}
       <div className="w-[210px] shrink-0 glass glass-glow flex flex-col">
         <div className="flex-1 min-h-0 flex flex-col">
@@ -3265,6 +3316,23 @@ export default function PluginLayout() {
                           if (projectBpm) updateProject(currentProject.id, { tempo: parseInt(projectBpm) });
                         }}
                       />
+                    </div>
+                    <div className="w-px h-5 bg-white/10 shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[11px] text-ghost-text-muted/60 uppercase tracking-wider">Time</span>
+                      <select
+                        className="text-[14px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-1 py-0 rounded-md transition-colors text-center cursor-pointer appearance-none"
+                        style={{ fontFamily: "'Consolas', monospace", backgroundImage: 'none' }}
+                        value={projectTimeSig}
+                        onChange={(e) => {
+                          setProjectTimeSig(e.target.value);
+                          updateProject(currentProject.id, { timeSignature: e.target.value } as any);
+                        }}
+                      >
+                        {['2/4','3/4','4/4','5/4','6/4','7/4','6/8','7/8','9/8','12/8'].map(ts => (
+                          <option key={ts} style={{ background: '#1a0e2e', color: '#fff' }} value={ts}>{ts}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="w-px h-5 bg-white/10 shrink-0" />
                     <div className="flex items-center gap-1 shrink-0">

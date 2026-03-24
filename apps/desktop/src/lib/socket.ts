@@ -9,7 +9,14 @@ const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 let socket: GhostSocket | null = null;
 let globalOnlineCallback: ((users: any[]) => void) | null = null;
 
-export function onGlobalOnlineUsers(cb: (users: { userId: string; displayName: string }[]) => void) {
+export interface OnlineUser {
+  userId: string;
+  displayName: string;
+  currentProjectId: string | null;
+  currentProjectName: string | null;
+}
+
+export function onGlobalOnlineUsers(cb: (users: OnlineUser[]) => void) {
   globalOnlineCallback = cb;
 }
 
