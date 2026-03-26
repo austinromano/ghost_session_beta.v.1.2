@@ -1265,6 +1265,7 @@ function FullMixDropZone({ projectId, onFilesAdded, isBeat, compact }: { project
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     const droppedFiles = Array.from(e.dataTransfer.files).filter((f) =>
       f.type.startsWith('audio/') || f.name.match(/\.(wav|mp3|flac|aiff|ogg|m4a|aac)$/i)
@@ -2425,6 +2426,7 @@ function DropZone({ projectId, onFilesAdded }: { projectId: string; onFilesAdded
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
 
     const droppedFiles = Array.from(e.dataTransfer.files).filter((f) =>
@@ -2913,9 +2915,7 @@ function ArrangementDropZone({ projectId, onFilesAdded, children }: { projectId:
     >
       {children}
       {dragOver && (
-        <div className="absolute inset-0 bg-ghost-green/5 pointer-events-none z-30 flex items-center justify-center rounded-xl">
-          <span className="text-ghost-green text-[14px] font-bold uppercase tracking-wider">Drop audio files here</span>
-        </div>
+        <div className="absolute inset-0 bg-ghost-green/5 pointer-events-none z-30 rounded-xl" />
       )}
     </div>
   );
@@ -2924,10 +2924,29 @@ function ArrangementDropZone({ projectId, onFilesAdded, children }: { projectId:
 function BarRuler() {
   const { duration, projectBpm, seekTo } = useAudioStore();
   const rulerRef = useRef<HTMLDivElement>(null);
+  const [rulerWidth, setRulerWidth] = useState(800);
 
   const bpm = projectBpm > 0 ? projectBpm : 120;
   const secondsPerBar = (60 / bpm) * 4;
   const totalBars = duration > 0 ? Math.max(8, Math.ceil(duration / secondsPerBar)) : 8;
+
+  // Measure ruler width to determine label density
+  useEffect(() => {
+    if (!rulerRef.current) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const e of entries) setRulerWidth(e.contentRect.width);
+    });
+    obs.observe(rulerRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  // Calculate pixels per bar and determine label interval (like Ableton)
+  const pxPerBar = rulerWidth / totalBars;
+  const minPxPerLabel = 28; // minimum pixels between labels
+  let labelEvery = 1;
+  for (const step of [1, 2, 4, 8, 16, 32, 64]) {
+    if (pxPerBar * step >= minPxPerLabel) { labelEvery = step; break; }
+  }
 
   const handleClick = (e: React.MouseEvent) => {
     if (!rulerRef.current || duration <= 0) return;
@@ -2945,10 +2964,13 @@ function BarRuler() {
     >
       {Array.from({ length: totalBars }).map((_, i) => {
         const leftPct = duration > 0 ? (i * secondsPerBar / duration) * 100 : (i / totalBars) * 100;
+        const showLabel = i % labelEvery === 0;
         return (
           <div key={i} className="absolute top-0 bottom-0" style={{ left: `${leftPct}%` }}>
-            <div className="absolute top-0 bottom-0 w-px bg-white/[0.12]" />
-            <span className="text-[9px] font-mono text-white/35 pl-1 leading-7 select-none">{i + 1}</span>
+            <div className={`absolute top-0 w-px ${showLabel ? 'bottom-0 bg-white/[0.12]' : 'h-2 bg-white/[0.06]'}`} />
+            {showLabel && (
+              <span className="text-[9px] font-mono text-white/35 pl-1 leading-7 select-none whitespace-nowrap">{i + 1}</span>
+            )}
           </div>
         );
       })}
@@ -3771,10 +3793,10 @@ export default function PluginLayout() {
               </div>
 
               {/* Right panel: icons + video + chat */}
-              <div className="relative flex flex-col min-h-0 h-full gap-2 overflow-hidden">
+              <div className={`relative flex flex-col min-h-0 h-full gap-2 ${chatCollapsed ? 'w-4 shrink-0' : 'overflow-hidden'}`}>
                 <button
                   onClick={() => setChatCollapsed(!chatCollapsed)}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors"
                   title={chatCollapsed ? 'Show chat' : 'Hide chat'}
                 >
                   <svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ghost-text-muted">
@@ -3823,10 +3845,10 @@ export default function PluginLayout() {
                 onInvite={() => setShowInvite(true)}
               />
               {/* Right panel: chat */}
-              <div className="relative flex flex-col min-h-0 h-full gap-2 overflow-hidden">
+              <div className={`relative flex flex-col min-h-0 h-full gap-2 ${chatCollapsed ? 'w-4 shrink-0' : 'overflow-hidden'}`}>
                 <button
                   onClick={() => setChatCollapsed(!chatCollapsed)}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors"
                   title={chatCollapsed ? 'Show chat' : 'Hide chat'}
                 >
                   <svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ghost-text-muted">
